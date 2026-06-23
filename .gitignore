@@ -67,3 +67,6 @@ reports/figures/*
 !data/scenarios/*.csv
 !configs/*.json
 !reports/final_thesis_artifacts/**
+
+# Generated processed artifacts
+data/processed/*.jsonl
