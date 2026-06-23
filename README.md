@@ -41,7 +41,7 @@ configs/                     конфигурации экспериментов
 data/raw/                    локальный исходный датасет Steam Reviews
 data/processed/              локальные обработанные файлы
 data/results/                рабочие результаты и служебные отчёты
-reports/final_thesis_artifacts/  финальные артефакты для защиты
+reports/final_thesis_artifacts/  финальные артефакты 
 experiments/                 архивы прогонов экспериментов
 app.py                       Streamlit-интерфейс
 main.py                      CLI пайплайна
@@ -82,7 +82,6 @@ cp .env.example .env
 - учётные данные GigaChat только если планируется реальный LLM-запуск;
 - `USE_PILOT_SPLITS=true`, если нужен пилотный режим со сплитами малого размера.
 
-3. Никогда не публикуйте `.env`.
 
 ## Основные команды
 
@@ -139,8 +138,6 @@ ACTIVE_PROCESSED_REVIEWS=data/processed/reviews_clean_balanced_subset.csv ./.ven
 - корректных учётных данных GigaChat;
 - сетевого доступа;
 - готовности к реальным API-вызовам.
-
-Для демонстрации и проверки репозитория этот запуск не обязателен.
 
 ## Демонстрационный интерфейс
 
