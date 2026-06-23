@@ -1,0 +1,22 @@
+{
+  "experiment_name": "steam_reviews_balanced_subset_llm_10_gigachat",
+  "experiment_mode": "user_based",
+  "dataset_path": "data/raw/steam_reviews.csv",
+  "active_processed_reviews": "data/processed/reviews_clean_balanced_subset.csv",
+  "output_root": "experiments",
+  "run_llm": true,
+  "llm_provider": "gigachat",
+  "llm_model": "GigaChat",
+  "llm_response_language": "ru",
+  "use_pilot_splits": true,
+  "pilot_splits_path": "data/processed/user_evaluation_splits_pilot.jsonl",
+  "max_users_for_experiment": 10,
+  "max_llm_users": 10,
+  "max_llm_candidates": 10,
+  "top_k": 10,
+  "user_candidate_pool_size": 50,
+  "allow_llm_skip": false,
+  "allow_balanced_subset": true,
+  "random_seed": 42,
+  "notes": "Controlled 10-user GigaChat pilot configuration for thesis demonstration. Prepared without running API calls."
+}

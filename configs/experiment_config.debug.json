@@ -1,0 +1,16 @@
+{
+  "experiment_name": "steam_reviews_debug_experiment",
+  "experiment_mode": "auto",
+  "dataset_path": "data/raw/steam_reviews.csv",
+  "output_root": "experiments",
+  "min_user_reviews": 5,
+  "min_user_positive_reviews": 3,
+  "user_holdout_count": 1,
+  "user_candidate_pool_size": 50,
+  "max_users_for_experiment": 100,
+  "run_llm": false,
+  "allow_llm_skip": true,
+  "allow_synthetic_scenarios": true,
+  "allow_tiny_dataset": true,
+  "notes": "Debug-only configuration for local technical validation."
+}

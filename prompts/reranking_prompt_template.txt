@@ -1,0 +1,14 @@
+Re-rank the candidate games for this preference scenario.
+
+Preference text:
+{preference_text}
+
+Allowed candidate ids:
+{candidate_ids}
+
+Candidate game cards:
+{candidate_games}
+
+Return only valid candidate ids in the final ranking.
+Respond with a JSON object containing `ranked_game_ids` and `rationale`.
+
