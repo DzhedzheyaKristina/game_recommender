@@ -1,18 +1,69 @@
+.env
 .venv/
 venv/
 __pycache__/
 *.pyc
-.env
-data/raw/*.csv
-data/processed/*
-data/results/*
-reports/figures/*
-experiments/*
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.streamlit/cache/
+.cache/
+logs/
+*.log
+*.tmp
 
+# Локальные сертификаты и ключи
+*.pem
+*.crt
+*.cer
+*.key
+*.p12
+*.pfx
+
+# Сырые данные не публикуются
+data/raw/*.csv
+data/raw/*.zip
+data/raw/*.parquet
+
+# Крупные generated CSV хранятся локально
+data/processed/reviews_clean.csv
+data/processed/reviews_clean_subset.csv
+data/processed/reviews_clean_balanced_subset.csv
+data/processed/reviews_clean_debug.csv
+data/processed/recommendation_scenarios.jsonl
+data/processed/*.tmp
+data/processed/*debug*
+
+# Рабочие результаты по умолчанию не коммитятся, кроме зафиксированных небольших сводок
+data/results/*
+!data/results/.gitkeep
+!data/results/repository_cleanup_audit.md
+!data/results/experiment_manifest.json
+!data/results/user_llm_metrics_summary.csv
+!data/results/user_rank_comparison.csv
+!data/results/user_llm_reranking_summary.json
+!data/results/user_llm_validation_summary.json
+
+# Debug/preview-артефакты
+data/results/*debug*
+data/results/*prompt_preview*
+data/results/preprocessing_progress.*
+
+# Архивы экспериментов сохраняются локально
+experiments/*
+reports/figures/*
+
+# Разрешённые tracked-артефакты
 !data/raw/.gitkeep
 !data/processed/.gitkeep
-!data/results/.gitkeep
+!data/processed/game_cards.jsonl
+!data/processed/user_profiles.jsonl
+!data/processed/user_evaluation_splits.jsonl
+!data/processed/user_evaluation_splits_pilot.jsonl
 !reports/figures/.gitkeep
 !data/scenarios/*.jsonl
 !data/scenarios/*.csv
 !configs/*.json
+!reports/final_thesis_artifacts/**

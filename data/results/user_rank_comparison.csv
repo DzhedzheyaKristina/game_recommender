@@ -1,0 +1,11 @@
+masked_user_id,baseline_best_holdout_rank,llm_best_holdout_rank,llm_mode,rank_delta,holdout_in_candidate_pool,holdout_in_baseline_top_k,holdout_in_llm_top_k,candidate_pool_size,baseline_top_k_size,llm_top_k_size,baseline_hit_at_5,llm_hit_at_5,baseline_hit_at_10,llm_hit_at_10,llm_status,interpretation
+user_5811,2,2,real,0,True,True,True,50,10,10,1,1,1,1,fallback_to_baseline,LLM preserved the best holdout rank.
+user_119717,3,3,real,0,True,True,True,50,10,10,1,1,1,1,fallback_to_baseline,LLM preserved the best holdout rank.
+user_612947,4,5,real,-1,True,True,True,50,10,10,1,1,1,1,ok,LLM worsened the best holdout rank by 1 positions.
+user_64018,4,1,real,3,True,True,True,50,10,10,1,1,1,1,ok,LLM improved the best holdout rank by 3 positions.
+user_551,5,5,real,0,True,True,True,50,10,10,1,1,1,1,ok,LLM preserved the best holdout rank.
+user_432875,6,10,real,-4,True,True,True,50,10,10,0,0,1,1,partial_fallback_to_baseline,LLM worsened the best holdout rank by 4 positions.
+user_244467,7,7,real,0,True,True,True,50,10,10,0,0,1,1,fallback_to_baseline,LLM preserved the best holdout rank.
+user_544810,7,7,real,0,True,True,True,50,10,10,0,0,1,1,fallback_to_baseline,LLM preserved the best holdout rank.
+user_238552,8,8,real,0,True,True,True,50,10,10,0,0,1,1,fallback_to_baseline,LLM preserved the best holdout rank.
+user_294952,10,10,real,0,True,True,True,50,10,10,0,0,1,1,fallback_to_baseline,LLM preserved the best holdout rank.

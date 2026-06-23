@@ -1,0 +1,3 @@
+method,llm_mode,evaluated_profiles,skipped_profiles,mean_hit_rate_at_5,mean_hit_rate_at_10,mean_mrr,mean_ndcg_at_10
+user_tfidf_baseline,baseline,10,0,0.5,1.0,0.221071,0.400654
+user_llm_reranker,real,4,6,0.75,1.0,0.375,0.515693
