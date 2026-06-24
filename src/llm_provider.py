@@ -1,4 +1,3 @@
-"""Provider-specific helpers for real LLM calls and readiness checks."""
 
 from __future__ import annotations
 
@@ -26,7 +25,6 @@ DEFAULT_GIGACHAT_TOKEN_TTL_MINUTES = 25
 
 @dataclass(slots=True)
 class CachedToken:
-    """In-memory GigaChat token cache."""
 
     access_token: str
     expires_at: datetime
@@ -38,7 +36,6 @@ _GIGACHAT_TOKEN_CACHE: CachedToken | None = None
 
 
 def normalize_llm_provider(value: object) -> str:
-    """Normalize the selected LLM provider."""
 
     normalized = str(value or "openai").strip().lower() or "openai"
     if normalized not in SUPPORTED_LLM_PROVIDERS:
@@ -49,13 +46,11 @@ def normalize_llm_provider(value: object) -> str:
 
 
 def get_effective_llm_provider(settings: Settings) -> str:
-    """Return the normalized provider name."""
 
     return normalize_llm_provider(getattr(settings, "llm_provider", "openai"))
 
 
 def get_effective_llm_model(settings: Settings) -> str:
-    """Return the selected model for the current provider."""
 
     provider = get_effective_llm_provider(settings)
     if provider == "gigachat":
@@ -68,13 +63,11 @@ def get_effective_llm_model(settings: Settings) -> str:
 
 
 def get_response_language(settings: Settings) -> str:
-    """Return the configured response language."""
 
     return normalize_llm_response_language(getattr(settings, "llm_response_language", "ru"))
 
 
 def get_gigachat_ca_bundle_path(settings: Settings | None = None) -> str:
-    """Return the configured GigaChat CA bundle path, if any."""
 
     if settings is not None:
         candidate = str(getattr(settings, "gigachat_ca_bundle", "") or "").strip()
@@ -84,7 +77,6 @@ def get_gigachat_ca_bundle_path(settings: Settings | None = None) -> str:
 
 
 def inspect_gigachat_ca_bundle(settings: Settings | None = None) -> dict[str, object]:
-    """Inspect the configured CA bundle without exposing its contents."""
 
     bundle_path = get_gigachat_ca_bundle_path(settings)
     exists = bool(bundle_path) and Path(bundle_path).is_file()
@@ -103,7 +95,6 @@ def inspect_gigachat_ca_bundle(settings: Settings | None = None) -> dict[str, ob
 
 
 def get_gigachat_verify_value(settings: Settings) -> bool | str:
-    """Return the `verify` value for requests made to GigaChat."""
 
     verify_ssl = bool(getattr(settings, "gigachat_verify_ssl", True))
     if not verify_ssl:
@@ -122,7 +113,6 @@ def get_gigachat_verify_value(settings: Settings) -> bool | str:
 
 
 def provider_credentials_configured(settings: Settings) -> bool:
-    """Check whether the selected provider has usable credentials."""
 
     provider = get_effective_llm_provider(settings)
     model = get_effective_llm_model(settings)
@@ -146,7 +136,6 @@ def generate_llm_json_response(
     temperature: float = 0.0,
     settings: Settings | None = None,
 ) -> str:
-    """Call the selected provider and return the assistant content as text."""
 
     normalized_provider = normalize_llm_provider(provider)
     if normalized_provider == "mock":
@@ -171,7 +160,6 @@ def generate_llm_json_response(
 
 
 def check_provider_readiness(settings: Settings) -> dict[str, object]:
-    """Inspect provider configuration and optionally probe token retrieval."""
 
     provider = get_effective_llm_provider(settings)
     model = get_effective_llm_model(settings)
@@ -278,7 +266,6 @@ def _generate_openai_compatible_response(
     user_prompt: str,
     temperature: float,
 ) -> str:
-    """Call an OpenAI-compatible chat-completions endpoint."""
 
     api_key = os.getenv("OPENROUTER_API_KEY", "").strip() if provider == "openrouter" else os.getenv("OPENAI_API_KEY", "").strip()
     if not api_key and provider == "openrouter":
@@ -311,7 +298,6 @@ def _generate_gigachat_response(
     temperature: float,
     settings: Settings | None = None,
 ) -> str:
-    """Call the GigaChat chat-completions endpoint."""
 
     token = _get_gigachat_access_token(settings)
     api_base_url = (
@@ -354,7 +340,6 @@ def _generate_gigachat_response(
 
 
 def _resolve_gigachat_verify_without_settings() -> bool | str:
-    """Resolve the GigaChat verify flag from environment-only configuration."""
 
     verify_ssl = _parse_bool_env("GIGACHAT_VERIFY_SSL", True)
     if not verify_ssl:
@@ -372,7 +357,6 @@ def _resolve_gigachat_verify_without_settings() -> bool | str:
 
 
 def _get_gigachat_access_token(settings: Settings | None = None) -> str:
-    """Return a cached GigaChat token or fetch a fresh one."""
 
     token, report = get_gigachat_access_token_with_status(settings)
     if not token:
@@ -381,7 +365,6 @@ def _get_gigachat_access_token(settings: Settings | None = None) -> str:
 
 
 def get_gigachat_access_token_with_status(settings: Settings | None = None, *, force_refresh: bool = False) -> tuple[str, dict[str, object]]:
-    """Fetch or reuse a cached GigaChat token with safe status reporting."""
 
     global _GIGACHAT_TOKEN_CACHE
     now = datetime.now(timezone.utc)
@@ -610,7 +593,6 @@ def build_gigachat_token_preflight_report(
     *,
     use_cache: bool = True,
 ) -> dict[str, object]:
-    """Return a safe provider preflight report for GigaChat."""
 
     token, token_report = get_gigachat_access_token_with_status(settings, force_refresh=not use_cache)
     report = {
@@ -625,13 +607,11 @@ def build_gigachat_token_preflight_report(
         "provider_preflight_error_message_short": str(token_report.get("error", ""))[:180],
         "error": str(token_report.get("error", "")),
     }
-    # Do not leak or persist tokens; this function only reports status.
     _ = token
     return report
 
 
 def _resolve_gigachat_expiration(payload: dict[str, object], now: datetime) -> datetime:
-    """Resolve token expiration from the GigaChat token payload."""
 
     expires_at_value = payload.get("expires_at") or payload.get("expiresAt")
     if isinstance(expires_at_value, (int, float)):
@@ -657,7 +637,6 @@ def _resolve_gigachat_expiration(payload: dict[str, object], now: datetime) -> d
 
 
 def _parse_bool_env(name: str, default: bool) -> bool:
-    """Parse a boolean environment value."""
 
     raw = os.getenv(name)
     if raw is None:

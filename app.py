@@ -10,6 +10,7 @@ import streamlit as st
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 FINAL_ARTIFACT_DIR = PROJECT_ROOT / "reports" / "final_thesis_artifacts"
+FINAL_EXPERIMENT_SELECTION_REPORT = PROJECT_ROOT / "reports" / "final_experiment_selection.md"
 
 REQUIRED_ARTIFACTS = [
     "final_experiment_summary.md",
@@ -52,6 +53,24 @@ LIMITATION_TRANSLATIONS = {
     "This is a real LLM pilot, but still limited to a small controlled subset.": "Это реальный LLM-пилот, но он всё ещё ограничен небольшой контролируемой подвыборкой.",
 }
 
+EXPLANATION_STATUS_BLOCKS = [
+    (
+        "ok",
+        "Примеры с валидным ответом LLM",
+        "Ответ LLM прошёл валидацию и использован для переранжирования.",
+    ),
+    (
+        "partial_fallback_to_baseline",
+        "Примеры с частичным fallback",
+        "Часть ответа LLM была использована, часть заменена baseline.",
+    ),
+    (
+        "fallback_to_baseline",
+        "Примеры с полным fallback",
+        "Ответ LLM не прошёл проверку, поэтому использован базовый метод.",
+    ),
+]
+
 
 def load_json(path: Path) -> dict[str, object] | None:
     if not path.exists():
@@ -79,6 +98,24 @@ def load_text(path: Path) -> str | None:
         return path.read_text(encoding="utf-8")
     except Exception:
         return None
+
+
+def load_jsonl(path: Path) -> list[dict[str, object]]:
+    if not path.exists():
+        return []
+    rows: list[dict[str, object]] = []
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                payload = json.loads(line)
+                if isinstance(payload, dict):
+                    rows.append(payload)
+    except Exception:
+        return []
+    return rows
 
 
 def artifact_status() -> dict[str, bool]:
@@ -184,6 +221,22 @@ def localize_limitations(limitations: list[object]) -> list[str]:
     return result
 
 
+def localize_list(values: object) -> str:
+    if not isinstance(values, list):
+        return "нет"
+    normalized = [str(value).strip() for value in values if str(value).strip()]
+    return ", ".join(normalized) if normalized else "нет"
+
+
+def localize_explanation_text(text: object) -> str:
+    raw = str(text or "").strip()
+    if not raw:
+        return "Нет пояснения."
+    if raw == "Fallback to baseline because LLM response failed validation.":
+        return "Использован fallback к baseline, потому что ответ LLM не прошёл валидацию."
+    return raw
+
+
 def localize_explanations_markdown(text: str | None) -> str | None:
     if not text:
         return None
@@ -208,6 +261,75 @@ def localize_explanations_markdown(text: str | None) -> str | None:
     for source, target in replacements.items():
         localized = localized.replace(source, target)
     return localized
+
+
+def resolve_selected_experiment_dir() -> Path | None:
+    report_text = load_text(FINAL_EXPERIMENT_SELECTION_REPORT)
+    if not report_text:
+        return None
+    match = re.search(r"Selected experiment:\s*`([^`]+)`", report_text)
+    if not match:
+        return None
+    experiment_dir = PROJECT_ROOT / match.group(1)
+    return experiment_dir if experiment_dir.exists() else None
+
+
+def load_game_title_map() -> dict[str, str]:
+    title_map: dict[str, str] = {}
+    game_cards_path = PROJECT_ROOT / "data" / "processed" / "game_cards.jsonl"
+    for row in load_jsonl(game_cards_path):
+        game_id = str(row.get("game_id", "")).strip()
+        game_title = str(row.get("game_title", "")).strip()
+        if game_id and game_title:
+            title_map[game_id] = game_title
+    return title_map
+
+
+def format_game_list(game_ids: list[object], game_title_map: dict[str, str]) -> str:
+    if not game_ids:
+        return "нет"
+    formatted: list[str] = []
+    for game_id in game_ids:
+        normalized_id = str(game_id).strip()
+        if not normalized_id:
+            continue
+        title = game_title_map.get(normalized_id)
+        formatted.append(title if title else normalized_id)
+    return ", ".join(formatted) if formatted else "нет"
+
+
+def load_structured_explanations() -> dict[str, object] | None:
+    experiment_dir = resolve_selected_experiment_dir()
+    if experiment_dir is None:
+        return None
+
+    recommendations_path = experiment_dir / "user_llm_recommendations.jsonl"
+    if not recommendations_path.exists():
+        return None
+
+    split_candidates = [
+        experiment_dir / "user_evaluation_splits_pilot.jsonl",
+        experiment_dir / "user_evaluation_splits.jsonl",
+    ]
+    split_path = next((path for path in split_candidates if path.exists()), None)
+
+    recommendation_rows = load_jsonl(recommendations_path)
+    if not recommendation_rows:
+        return None
+
+    splits_by_user: dict[str, dict[str, object]] = {}
+    if split_path is not None:
+        for split_row in load_jsonl(split_path):
+            masked_user_id = str(split_row.get("masked_user_id", "")).strip()
+            if masked_user_id:
+                splits_by_user[masked_user_id] = split_row
+
+    return {
+        "experiment_dir": experiment_dir,
+        "recommendations": recommendation_rows,
+        "splits_by_user": splits_by_user,
+        "game_title_map": load_game_title_map(),
+    }
 
 
 def localize_methodology_markdown(text: str | None) -> str | None:
@@ -427,9 +549,99 @@ def show_rank_comparison_tab(rank_df: pd.DataFrame | None) -> None:
     st.markdown(f"**Интерпретация:** {localize_interpretation(selected_row.get('interpretation', 'n/a'))}")
 
 
-def show_explanations_tab(explanations_md: str | None) -> None:
+def render_structured_explanation_block(
+    *,
+    status: str,
+    title: str,
+    description: str,
+    recommendation_rows: list[dict[str, object]],
+    splits_by_user: dict[str, dict[str, object]],
+    game_title_map: dict[str, str],
+) -> None:
+    status_rows = [
+        row for row in recommendation_rows if str(row.get("status", "")).strip() == status and row.get("rank") is not None
+    ]
+    if not status_rows:
+        return
+
+    st.markdown(f"### {title}")
+    st.caption(description)
+
+    user_ids: list[str] = []
+    seen_users: set[str] = set()
+    for row in status_rows:
+        masked_user_id = str(row.get("masked_user_id", "")).strip()
+        if masked_user_id and masked_user_id not in seen_users:
+            seen_users.add(masked_user_id)
+            user_ids.append(masked_user_id)
+
+    if not user_ids:
+        return
+
+    selected_user = st.selectbox(
+        "Выберите пользователя",
+        user_ids,
+        key=f"explanations_user_{status}",
+    )
+
+    user_rows = [
+        row
+        for row in status_rows
+        if str(row.get("masked_user_id", "")).strip() == selected_user
+    ]
+    user_rows.sort(key=lambda row: parse_int_value(row.get("rank", 0)))
+
+    split_row = splits_by_user.get(selected_user, {})
+    history_game_ids = split_row.get("train_game_ids", split_row.get("history_game_ids", []))
+    holdout_game_ids = split_row.get("holdout_game_ids", split_row.get("ground_truth_game_ids", []))
+    holdout_set = {str(game_id).strip() for game_id in holdout_game_ids if str(game_id).strip()}
+
+    st.markdown(f"**Пользователь:** `{selected_user}`")
+    if split_row:
+        st.markdown(f"**Игры в обучающей истории:** {format_game_list(list(history_game_ids), game_title_map)}")
+        st.markdown(f"**Скрытая контрольная игра:** {format_game_list(list(holdout_game_ids), game_title_map)}")
+        st.caption(
+            "Скрытая контрольная игра не использовалась при построении профиля и применялась только для проверки попадания в список рекомендаций."
+        )
+    else:
+        st.markdown("**Исходная история пользователя:** недоступна в сохранённых артефактах.")
+
+    for row in user_rows:
+        rank = parse_int_value(row.get("rank", 0))
+        game_id = str(row.get("game_id", "")).strip()
+        game_title = str(row.get("game_title", "")).strip() or game_title_map.get(game_id, game_id)
+        holdout_marker = "Да" if game_id in holdout_set else "Нет"
+        st.markdown(f"#### {rank}. {game_title}")
+        st.markdown(f"**Статус:** {localize_status(row.get('status', 'unknown'))}")
+        st.markdown(f"**Объяснение LLM:** {localize_explanation_text(row.get('explanation', ''))}")
+        st.markdown(f"**Совпавшие предпочтения:** {localize_list(row.get('matched_preferences', []))}")
+        st.markdown(f"**Возможные риски:** {localize_list(row.get('possible_risks', []))}")
+        st.markdown(f"**Скрытая контрольная игра в топ-k:** {holdout_marker}")
+
+
+def show_explanations_tab(explanations_md: str | None, structured_explanations: dict[str, object] | None) -> None:
     st.subheader("Примеры объяснений")
     st.info("Ниже показаны сохранённые примеры объяснений рекомендаций из финального пилотного эксперимента.")
+
+    if structured_explanations:
+        recommendation_rows = list(structured_explanations.get("recommendations", []))
+        splits_by_user = dict(structured_explanations.get("splits_by_user", {}))
+        game_title_map = dict(structured_explanations.get("game_title_map", {}))
+        for status, title, description in EXPLANATION_STATUS_BLOCKS:
+            render_structured_explanation_block(
+                status=status,
+                title=title,
+                description=description,
+                recommendation_rows=recommendation_rows,
+                splits_by_user=splits_by_user,
+                game_title_map=game_title_map,
+            )
+        return
+
+    st.warning(
+        "Структурированные примеры из выбранного архива эксперимента недоступны. "
+        "Показан резервный markdown-вариант без сортировки по статусам."
+    )
     localized_text = localize_explanations_markdown(explanations_md)
     if localized_text:
         st.markdown(localized_text)
@@ -485,6 +697,7 @@ def main() -> None:
     summary_md = load_text(FINAL_ARTIFACT_DIR / "final_experiment_summary.md")
     explanations_md = load_text(FINAL_ARTIFACT_DIR / "user_llm_explanation_examples.md")
     methodology_md = load_text(FINAL_ARTIFACT_DIR / "balanced_subset_methodology_note.md")
+    structured_explanations = load_structured_explanations()
 
     tabs = st.tabs(
         [
@@ -503,7 +716,7 @@ def main() -> None:
     with tabs[2]:
         show_rank_comparison_tab(rank_df)
     with tabs[3]:
-        show_explanations_tab(explanations_md)
+        show_explanations_tab(explanations_md, structured_explanations)
     with tabs[4]:
         show_limitations_tab(methodology_md, summary)
 

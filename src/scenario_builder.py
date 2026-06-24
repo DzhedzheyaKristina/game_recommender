@@ -1,4 +1,3 @@
-"""Build or load scenario-based recommendation profiles."""
 
 from __future__ import annotations
 
@@ -15,7 +14,6 @@ from src.utils import get_logger, model_to_dict, write_jsonl
 
 
 class Scenario(BaseModel):
-    """Canonical scenario format for evaluation and ranking."""
 
     scenario_id: str
     scenario_type: str
@@ -31,7 +29,6 @@ def build_scenarios(
     game_cards: list[GameCard],
     settings: Settings,
 ) -> list[Scenario]:
-    """Load predefined scenarios or derive synthetic demo scenarios."""
 
     logger = get_logger()
     id_to_card = {card.game_id: card for card in game_cards}
@@ -70,7 +67,6 @@ def normalize_predefined_scenarios(
     external_records: list[dict[str, object]],
     id_to_card: dict[str, GameCard],
 ) -> list[Scenario]:
-    """Normalize externally provided scenarios and annotate partial issues."""
 
     logger = get_logger()
     scenarios: list[Scenario] = []
@@ -150,7 +146,6 @@ def normalize_predefined_scenarios(
 
 
 def normalize_predefined_scenario_type(raw_value: object, has_seed_games: bool) -> str:
-    """Normalize predefined scenarios into the allowed scenario types."""
 
     normalized = str(raw_value or "").strip().lower()
     if normalized in {"manual", "manual_draft", "seed_games", "synthetic_demo"}:
@@ -159,7 +154,6 @@ def normalize_predefined_scenario_type(raw_value: object, has_seed_games: bool) 
 
 
 def normalize_notes(value: object) -> str:
-    """Normalize scenario notes into a compact string."""
 
     if value is None:
         return ""
@@ -167,7 +161,6 @@ def normalize_notes(value: object) -> str:
 
 
 def normalize_id_list(value: object) -> list[str]:
-    """Normalize a list-like field into a unique list of string game ids."""
 
     if value is None:
         return []
@@ -190,7 +183,6 @@ def normalize_id_list(value: object) -> list[str]:
 
 
 def deduplicate_preserve_order(values) -> list[str]:
-    """Deduplicate iterables while keeping the first occurrence order."""
 
     seen: set[str] = set()
     deduplicated: list[str] = []
@@ -207,7 +199,6 @@ def keep_existing_ids(
     field_name: str,
     notes: list[str],
 ) -> list[str]:
-    """Filter unknown game ids and record a warning instead of crashing."""
 
     kept_ids: list[str] = []
     missing_ids: list[str] = []
@@ -230,7 +221,6 @@ def generate_synthetic_scenarios(
     game_cards: list[GameCard],
     settings: Settings,
 ) -> list[Scenario]:
-    """Generate lightweight synthetic demo scenarios for local validation."""
 
     if not game_cards:
         return []
@@ -306,7 +296,6 @@ def find_similar_cards(
     matrix,
     id_to_index: dict[str, int],
 ) -> list[GameCard]:
-    """Find similar game cards with TF-IDF cosine similarity."""
 
     seed_index = id_to_index[seed_card.game_id]
     similarities = cosine_similarity(matrix[seed_index], matrix).flatten()
@@ -328,7 +317,6 @@ def find_similar_cards(
 
 
 def build_synthetic_preference_text(seed_card: GameCard) -> str:
-    """Build synthetic preference text from a high-quality seed game card."""
 
     positive_keywords = ", ".join(seed_card.positive_keywords[:5] or ["none"])
     negative_keywords = ", ".join(seed_card.negative_keywords[:5] or ["none"])

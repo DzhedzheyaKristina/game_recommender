@@ -1,4 +1,3 @@
-"""Lightweight environment and preflight checks that avoid heavy dependencies."""
 
 from __future__ import annotations
 
@@ -28,7 +27,6 @@ def run_environment_check(
     project_root: Path,
     dataset_path_override: Path | None = None,
 ) -> dict[str, object]:
-    """Inspect the local execution environment and write a compact report."""
 
     results_dir = project_root / "data" / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -54,7 +52,6 @@ def build_environment_report(
     project_root: Path,
     dataset_path_override: Path | None = None,
 ) -> dict[str, object]:
-    """Collect environment facts and classify them as ok, warning, or error."""
 
     checks: list[dict[str, str]] = []
     cwd = Path.cwd().resolve()
@@ -228,13 +225,11 @@ def build_environment_report(
 
 
 def check_record(name: str, status: str, message: str) -> dict[str, str]:
-    """Build one environment check record."""
 
     return {"name": name, "status": status, "message": message}
 
 
 def load_simple_env(path: Path) -> dict[str, str]:
-    """Load simple KEY=VALUE pairs without requiring python-dotenv."""
 
     values: dict[str, str] = {}
     if not path.exists():
@@ -250,7 +245,6 @@ def load_simple_env(path: Path) -> dict[str, str]:
 
 
 def build_environment_check_markdown(report: dict[str, object]) -> str:
-    """Render the environment check as a compact markdown report."""
 
     lines = [
         "# Environment Check",
@@ -280,7 +274,6 @@ def build_environment_check_markdown(report: dict[str, object]) -> str:
 
 
 def find_missing_runtime_dependencies() -> list[str]:
-    """Return the package import names that are currently missing."""
 
     missing: list[str] = []
     for module_name in REQUIRED_IMPORTS:

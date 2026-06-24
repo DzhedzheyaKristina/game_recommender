@@ -1,4 +1,3 @@
-"""Configuration for the research prototype."""
 
 from __future__ import annotations
 
@@ -11,7 +10,6 @@ from dotenv import load_dotenv
 
 @dataclass(slots=True)
 class Settings:
-    """Application settings loaded from defaults and optional environment variables."""
 
     project_root: Path
     raw_data_dir: Path
@@ -234,7 +232,6 @@ class Settings:
 
 
 def load_settings() -> Settings:
-    """Load settings from defaults and optional `.env` variables."""
 
     project_root = Path(__file__).resolve().parent.parent
     load_dotenv(project_root / ".env")
@@ -471,7 +468,6 @@ def load_settings() -> Settings:
 
 
 def normalize_llm_response_language(value: object) -> str:
-    """Normalize the configured LLM response language."""
 
     normalized = str(value or "ru").strip().lower() or "ru"
     if normalized not in {"ru", "en"}:
@@ -480,7 +476,6 @@ def normalize_llm_response_language(value: object) -> str:
 
 
 def _load_bool_env(name: str, default: bool) -> bool:
-    """Load a boolean environment variable with permissive parsing."""
 
     raw_value = os.getenv(name)
     if raw_value is None:
@@ -495,7 +490,6 @@ def _load_bool_env(name: str, default: bool) -> bool:
 
 
 def _load_optional_int_env(name: str) -> int | None:
-    """Load an optional integer environment variable."""
 
     raw_value = os.getenv(name)
     if raw_value is None or not raw_value.strip():

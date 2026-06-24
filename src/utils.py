@@ -1,4 +1,3 @@
-"""Shared helpers for small file and text operations."""
 
 from __future__ import annotations
 
@@ -10,14 +9,12 @@ from typing import Any, Iterable
 
 
 def ensure_directories(paths: Iterable[Path]) -> None:
-    """Create directories if they do not already exist."""
 
     for path in paths:
         path.mkdir(parents=True, exist_ok=True)
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
-    """Read a JSONL file into a list of dictionaries."""
 
     if not path.exists():
         return []
@@ -32,7 +29,6 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def write_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> None:
-    """Write dictionaries to a JSONL file."""
 
     with path.open("w", encoding="utf-8") as handle:
         for record in records:
@@ -40,7 +36,6 @@ def write_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> None:
 
 
 def truncate_text(text: str, max_chars: int) -> str:
-    """Trim text while keeping words readable."""
 
     cleaned = re.sub(r"\s+", " ", text).strip()
     if len(cleaned) <= max_chars:
@@ -49,7 +44,6 @@ def truncate_text(text: str, max_chars: int) -> str:
 
 
 def get_logger(name: str = "steam_recommender") -> logging.Logger:
-    """Create a simple console logger."""
 
     logger = logging.getLogger(name)
     if not logger.handlers:
@@ -61,13 +55,11 @@ def get_logger(name: str = "steam_recommender") -> logging.Logger:
 
 
 def load_text(path: Path) -> str:
-    """Read a plain-text file."""
 
     return path.read_text(encoding="utf-8")
 
 
 def model_to_dict(model: Any) -> dict[str, Any]:
-    """Convert a Pydantic model to a plain dictionary across versions."""
 
     if hasattr(model, "model_dump"):
         return model.model_dump()

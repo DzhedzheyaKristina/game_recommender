@@ -1,14 +1,13 @@
-Re-rank the candidate games for this preference scenario.
+Переранжируй игры-кандидаты для этого сценария предпочтений.
 
-Preference text:
+Текст предпочтений:
 {preference_text}
 
-Allowed candidate ids:
+Разрешённые идентификаторы кандидатов:
 {candidate_ids}
 
-Candidate game cards:
+Карточки игр-кандидатов:
 {candidate_games}
 
-Return only valid candidate ids in the final ranking.
-Respond with a JSON object containing `ranked_game_ids` and `rationale`.
-
+Возвращай в итоговом ранжировании только допустимые идентификаторы кандидатов.
+Ответ должен быть JSON-объектом с ключами `ranked_game_ids` и `rationale`.

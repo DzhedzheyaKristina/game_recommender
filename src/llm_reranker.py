@@ -1,4 +1,3 @@
-"""Optional LLM reranking over baseline candidates."""
 
 from __future__ import annotations
 
@@ -21,7 +20,6 @@ from src.utils import load_text, write_jsonl
 
 
 class LLMRankingResponse(BaseModel):
-    """Expected minimal response shape from the reranker."""
 
     ranked_game_ids: list[str]
     rationale: str = ""
@@ -33,7 +31,6 @@ def run_llm_reranker(
     game_cards: list[GameCard],
     settings: Settings,
 ) -> list[RecommendationRecord]:
-    """Rerank baseline candidates if LLM credentials are present."""
 
     baseline_by_scenario = group_records_by_scenario(baseline_results, method="baseline")
     id_to_card = {card.game_id: card for card in game_cards}
@@ -112,7 +109,6 @@ def rerank_single_scenario(
     model: str,
     settings: Settings,
 ) -> list[RecommendationRecord]:
-    """Call the LLM and validate that it only reorders known candidates."""
 
     baseline_ranked_rows = sorted(
         [row for row in baseline_rows if row.rank is not None and row.game_id],
@@ -199,7 +195,6 @@ def build_ranked_records(
     candidate_size: int,
     notes: str,
 ) -> list[RecommendationRecord]:
-    """Build row-wise recommendation records from an ordered game-id list."""
 
     return [
         RecommendationRecord(
@@ -221,7 +216,6 @@ def group_records_by_scenario(
     records: list[RecommendationRecord],
     method: str,
 ) -> dict[str, list[RecommendationRecord]]:
-    """Group recommendation rows by scenario for one method."""
 
     grouped: dict[str, list[RecommendationRecord]] = {}
     for record in records:
@@ -232,13 +226,11 @@ def group_records_by_scenario(
 
 
 def has_ranked_rows(records: list[RecommendationRecord]) -> bool:
-    """Return True when a scenario contains actual recommendation rows."""
 
     return any(record.rank is not None and record.game_id for record in records)
 
 
 def get_candidate_size(records: list[RecommendationRecord]) -> int:
-    """Extract candidate-size metadata from a scenario record set."""
 
     if not records:
         return 0
@@ -246,7 +238,6 @@ def get_candidate_size(records: list[RecommendationRecord]) -> int:
 
 
 def parse_llm_response(content: str) -> LLMRankingResponse:
-    """Parse the LLM JSON response."""
 
     try:
         payload = json.loads(content)
@@ -266,7 +257,6 @@ def parse_llm_response(content: str) -> LLMRankingResponse:
 
 
 def keep_valid_reranked_ids(ranked_ids: list[str], baseline_ids: list[str]) -> list[str]:
-    """Drop invalid ids and preserve uniqueness within the baseline rerank pool."""
 
     allowed_ids = set(baseline_ids)
     filtered: list[str] = []

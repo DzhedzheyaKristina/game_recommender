@@ -1,4 +1,3 @@
-"""TF-IDF baseline ranking over scenario preference text and game cards."""
 
 from __future__ import annotations
 
@@ -16,7 +15,6 @@ from src.utils import write_jsonl
 
 @dataclass(slots=True)
 class RecommendationRecord:
-    """One recommendation row or status row for a scenario and method."""
 
     scenario_id: str
     method: str
@@ -29,7 +27,6 @@ class RecommendationRecord:
     notes: str = ""
 
     def to_dict(self) -> dict[str, object]:
-        """Convert the record to a JSON-serializable dictionary."""
 
         return {
             "scenario_id": self.scenario_id,
@@ -49,7 +46,6 @@ def run_baseline(
     game_cards: list[GameCard],
     settings: Settings,
 ) -> list[RecommendationRecord]:
-    """Rank candidate game cards with TF-IDF cosine similarity."""
 
     if not game_cards:
         raise ValueError("No game cards are available for the TF-IDF baseline.")
@@ -86,7 +82,6 @@ def build_query_text(
     id_to_card: dict[str, GameCard],
     settings: Settings,
 ) -> str:
-    """Build the TF-IDF query from preference text and optional seed cards."""
 
     query_parts = [scenario.preference_text.strip()]
     if settings.use_seed_cards_in_query:
@@ -108,7 +103,6 @@ def rank_candidates(
     id_to_index: dict[str, int],
     settings: Settings,
 ) -> list[RecommendationRecord]:
-    """Filter and rank candidate games for a single scenario."""
 
     excluded_ids = set(scenario.seed_game_ids) | set(scenario.excluded_game_ids)
     if scenario.candidate_game_ids:

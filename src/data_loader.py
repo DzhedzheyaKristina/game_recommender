@@ -1,4 +1,3 @@
-"""Load raw review data, validate schemas, and inspect dataset files."""
 
 from __future__ import annotations
 
@@ -75,7 +74,6 @@ STREAM_CHUNK_SIZE = 1_000_000
 
 
 def load_reviews_csv(settings: Settings) -> pd.DataFrame:
-    """Load the selected Steam reviews CSV and validate its minimum schema."""
 
     dataset_path = select_reviews_csv_path(settings)
     report = validate_dataset_schema(settings, dataset_path)
@@ -101,7 +99,6 @@ def load_reviews_csv(settings: Settings) -> pd.DataFrame:
 
 
 def select_reviews_csv_path(settings: Settings) -> Path:
-    """Resolve the dataset path from config or available files in data/raw/."""
 
     logger = get_logger()
     configured_path = settings.reviews_csv_path
@@ -134,7 +131,6 @@ def select_reviews_csv_path(settings: Settings) -> Path:
 
 
 def normalize_raw_column_name(name: str) -> str:
-    """Normalize known raw Steam-review column names while preserving semantics."""
 
     cleaned = str(name).replace("\ufeff", "").strip()
     cleaned = re.sub(r"\s+", " ", cleaned)
@@ -143,7 +139,6 @@ def normalize_raw_column_name(name: str) -> str:
 
 
 def build_column_resolution(columns: list[str]) -> dict[str, object]:
-    """Build canonical/raw column mappings and diagnostic warnings."""
 
     raw_columns = [str(column) for column in columns]
     normalized_columns = [normalize_raw_column_name(column) for column in raw_columns]
@@ -184,7 +179,6 @@ def build_column_resolution(columns: list[str]) -> dict[str, object]:
 
 
 def run_schema_check(settings: Settings) -> dict[str, object]:
-    """Locate the dataset, validate the header, and save schema reports."""
 
     dataset_path = select_reviews_csv_path(settings)
     report = validate_dataset_schema(settings, dataset_path)
@@ -210,7 +204,6 @@ def run_schema_check(settings: Settings) -> dict[str, object]:
 
 
 def validate_dataset_schema(settings: Settings, dataset_path: Path) -> dict[str, object]:
-    """Validate the dataset header and persist a compact report."""
 
     raw_columns = read_dataset_header(dataset_path)
     resolution = build_column_resolution(raw_columns)
@@ -268,7 +261,6 @@ def validate_dataset_schema(settings: Settings, dataset_path: Path) -> dict[str,
 
 
 def inspect_raw_dataset(settings: Settings) -> dict[str, object]:
-    """Inspect the raw CSV before preprocessing and save compact reports."""
 
     dataset_path = select_reviews_csv_path(settings)
     report = inspect_csv_file(dataset_path, settings)
@@ -289,7 +281,6 @@ def inspect_raw_dataset(settings: Settings) -> dict[str, object]:
 
 
 def discover_datasets(settings: Settings) -> list[dict[str, object]]:
-    """Inspect every CSV in data/raw/ and summarize dataset availability."""
 
     logger = get_logger()
     csv_paths = sorted(settings.raw_data_dir.glob("*.csv"))
@@ -335,7 +326,6 @@ def inspect_csv_file(
     *,
     include_preview: bool = True,
 ) -> dict[str, object]:
-    """Collect raw-file inspection details without full preprocessing."""
 
     raw_columns = read_dataset_header(dataset_path)
     resolution = build_column_resolution(raw_columns)
@@ -431,13 +421,11 @@ def inspect_csv_file(
 
 
 def read_dataset_header(dataset_path: Path) -> list[str]:
-    """Read only the header row from a CSV file using pandas column parsing."""
 
     return [str(column) for column in pd.read_csv(dataset_path, nrows=0).columns.tolist()]
 
 
 def count_csv_rows(dataset_path: Path, count_column_name: str) -> int:
-    """Count data rows without loading the full dataset into memory."""
 
     count = 0
     for chunk in pd.read_csv(dataset_path, usecols=[count_column_name], chunksize=STREAM_CHUNK_SIZE):
@@ -451,7 +439,6 @@ def summarize_identifier_column(
     *,
     track_unique: bool = True,
 ) -> dict[str, object]:
-    """Stream one identifier-like column and summarize it."""
 
     non_empty_count = 0
     empty_count = 0
@@ -482,14 +469,12 @@ def summarize_identifier_column(
 
 
 def normalize_identifier_series(values: pd.Series) -> pd.Series:
-    """Normalize identifier-like values while preserving valid numeric ids."""
 
     normalized = values.map(normalize_identifier_value)
     return normalized.fillna("").astype(str)
 
 
 def normalize_identifier_value(value: object) -> str:
-    """Normalize a single identifier-like value."""
 
     if value is None or pd.isna(value):
         return ""
@@ -517,7 +502,6 @@ def load_preview_rows(
     dataset_path: Path,
     resolution: dict[str, object],
 ) -> list[dict[str, object]]:
-    """Load the first three raw rows for selected columns only."""
 
     canonical_to_raw = resolution["canonical_to_raw"]
     selected_raw_columns = [
@@ -551,7 +535,6 @@ def detect_likely_sample_or_incomplete(
     has_steamid_column: bool,
     non_empty_steamid_count: int,
 ) -> bool:
-    """Flag files that still look like sample or incomplete inputs."""
 
     return bool(
         raw_row_count <= 100
@@ -563,7 +546,6 @@ def detect_likely_sample_or_incomplete(
 
 
 def mask_identifier(value: str) -> str:
-    """Mask identifier-like values for markdown-safe reporting."""
 
     text = normalize_identifier_value(value)
     if not text:
@@ -574,7 +556,6 @@ def mask_identifier(value: str) -> str:
 
 
 def build_schema_validation_markdown(report: dict[str, object]) -> str:
-    """Render the schema validation report as concise markdown."""
 
     missing_lines = [f"- {column}" for column in report["missing_expected_columns"]] or ["- none"]
     extra_lines = [f"- {column}" for column in report["extra_columns"]] or ["- none"]
@@ -604,7 +585,6 @@ def build_schema_validation_markdown(report: dict[str, object]) -> str:
 
 
 def build_raw_dataset_inspection_markdown(report: dict[str, object]) -> str:
-    """Render the raw-dataset inspection report as markdown."""
 
     warning_lines = [f"- {warning}" for warning in report["warnings"]] or ["- none"]
     preview_frame = pd.DataFrame(report["first_three_raw_rows"])
@@ -640,7 +620,6 @@ def build_raw_dataset_inspection_markdown(report: dict[str, object]) -> str:
 
 
 def build_dataset_discovery_markdown(reports: list[dict[str, object]]) -> str:
-    """Render the dataset discovery output as markdown."""
 
     if not reports:
         return "# Dataset Discovery\n\n_No CSV files found in `data/raw/`._\n"
@@ -680,7 +659,6 @@ def build_dataset_discovery_markdown(reports: list[dict[str, object]]) -> str:
 
 
 def dataframe_to_markdown(frame: pd.DataFrame) -> str:
-    """Render a small dataframe as markdown."""
 
     if frame.empty:
         return "_No rows available._"
@@ -695,7 +673,6 @@ def dataframe_to_markdown(frame: pd.DataFrame) -> str:
 
 
 def load_external_scenarios(path: Path | None) -> list[dict[str, object]]:
-    """Load external scenario definitions from JSONL or CSV if configured."""
 
     if path is None:
         return []
@@ -713,7 +690,6 @@ def load_external_scenarios(path: Path | None) -> list[dict[str, object]]:
 
 
 def normalize_external_scenario(record: dict[str, object]) -> dict[str, object]:
-    """Normalize list-like fields from CSV rows into Python lists."""
 
     list_fields = {
         "seed_game_ids",
@@ -732,7 +708,6 @@ def normalize_external_scenario(record: dict[str, object]) -> dict[str, object]:
 
 
 def _coerce_list(value: object) -> list[str]:
-    """Convert common serialized list formats to a list of strings."""
 
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return []

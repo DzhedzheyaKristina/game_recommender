@@ -1,8 +1,8 @@
-"""Entrypoint for the scenario-based Steam review recommender prototype."""
 
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
 from pathlib import Path
 import sys
 
@@ -13,8 +13,18 @@ from src.environment_tools import (
 )
 
 
+DEMO_REQUIRED_FILES = [
+    "final_experiment_summary.md",
+    "experiment_manifest.json",
+    "user_llm_reranking_summary.json",
+    "user_llm_metrics_summary.csv",
+    "user_rank_comparison.csv",
+    "user_llm_explanation_examples.md",
+    "balanced_subset_methodology_note.md",
+]
+
+
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
 
     parser = argparse.ArgumentParser(description="Steam review recommender prototype")
     parser.add_argument(
@@ -90,7 +100,6 @@ def parse_args() -> argparse.Namespace:
 
 
 def ensure_runtime_dependencies(step: str) -> None:
-    """Stop early with a readable message when key packages are missing."""
 
     if step == "check_env":
         return
@@ -111,8 +120,20 @@ def ensure_runtime_dependencies(step: str) -> None:
     sys.exit(1)
 
 
+def run_demo_info_step(reports_dir: Path) -> None:
+
+    final_dir = reports_dir / "final_thesis_artifacts"
+    print("To launch the local demo interface:")
+    print("streamlit run app.py")
+    print()
+    print("Artifact check:")
+    for filename in DEMO_REQUIRED_FILES:
+        exists = (final_dir / filename).exists()
+        status = "OK" if exists else "MISSING"
+        print(f"- {filename}: {status}")
+
+
 def run_pipeline(args: argparse.Namespace) -> None:
-    """Run the requested part of the pipeline."""
 
     step = args.step
     project_root = Path(__file__).resolve().parent
@@ -174,7 +195,6 @@ def run_pipeline(args: argparse.Namespace) -> None:
     from src.utils import ensure_directories, get_logger
 
     def prepare_directories(settings: Settings) -> None:
-        """Ensure the required output directories exist."""
 
         ensure_directories(
             [
@@ -187,6 +207,60 @@ def run_pipeline(args: argparse.Namespace) -> None:
                 settings.prompts_dir,
             ]
         )
+
+    def apply_optional_config_override(settings: Settings) -> None:
+
+        if not args.config or step not in config_override_steps:
+            return
+        config_payload, _ = load_experiment_config(settings.project_root, config_path=Path(args.config))
+        apply_experiment_settings_overrides(settings, config_payload)
+
+    def run_discover_datasets_step() -> None:
+        reports = discover_datasets(settings)
+        print(f"Dataset discovery completed: {len(reports)} CSV file(s) inspected.")
+
+    def run_inspect_raw_step() -> None:
+        report = inspect_raw_dataset(settings)
+        print(
+            "Raw inspection completed: "
+            f"rows={report['raw_row_count']}, "
+            f"author.steamid_non_empty={report['author_steamid_non_empty_count']}"
+        )
+
+    def run_schema_check_step() -> None:
+        report = run_schema_check(settings)
+        print(
+            "Schema check completed: "
+            f"status={report['status']}, "
+            f"user_mode={report['required_for_user_mode_present']}"
+        )
+
+    def run_chunked_preprocessing_step(mode: str, output_path: Path, label: str) -> None:
+        run_chunked_preprocessing(settings, mode=mode)
+        logger.info("Saved %s to %s", label, output_path)
+
+    def run_balanced_subset_preprocessing_step() -> None:
+        run_balanced_subset_preprocessing(settings)
+        logger.info(
+            "Saved balanced subset cleaned reviews to %s",
+            settings.reviews_clean_balanced_subset_path,
+        )
+
+    def run_experiment_step() -> None:
+        run_controlled_experiment(
+            settings=settings,
+            config_path=Path(args.config) if args.config else None,
+            allow_tiny_override=args.allow_tiny,
+            allow_synthetic_override=args.allow_synthetic,
+            run_llm_override=args.run_llm,
+        )
+
+    def load_required_cleaned_reviews() -> pd.DataFrame:
+        if not settings.active_processed_reviews_path.exists():
+            raise RuntimeError(
+                "Cleaned reviews are required before downstream steps. Run `./.venv/bin/python main.py --step preprocess` first."
+            )
+        return pd.read_csv(settings.active_processed_reviews_path)
 
     settings = load_settings()
     logger = get_logger()
@@ -210,9 +284,49 @@ def run_pipeline(args: argparse.Namespace) -> None:
         "export_thesis_results",
         "demo_info",
     }
-    if args.config and step in config_override_steps:
-        config_payload, _ = load_experiment_config(settings.project_root, config_path=Path(args.config))
-        apply_experiment_settings_overrides(settings, config_payload)
+    apply_optional_config_override(settings)
+
+    simple_step_handlers: dict[str, Callable[[], None]] = {
+        "list_games": lambda: export_available_games(settings),
+        "discover_datasets": run_discover_datasets_step,
+        "inspect_raw": run_inspect_raw_step,
+        "schema_check": run_schema_check_step,
+        "data_diagnostics": lambda: run_data_diagnostics(settings),
+        "preflight": lambda: build_preflight_report(settings),
+        "preprocess": lambda: run_chunked_preprocessing_step("full", settings.reviews_clean_path, "cleaned reviews"),
+        "preprocess_debug": lambda: run_chunked_preprocessing_step("debug", settings.reviews_clean_debug_path, "debug cleaned reviews"),
+        "preprocess_subset": lambda: run_chunked_preprocessing_step("subset", settings.reviews_clean_subset_path, "subset cleaned reviews"),
+        "preprocess_balanced_subset": run_balanced_subset_preprocessing_step,
+        "preprocess_status": lambda: print_preprocessing_status(settings),
+        "run_experiment": run_experiment_step,
+        "draft_scenarios": lambda: generate_draft_scenarios(settings),
+        "build_user_profiles": lambda: build_user_profiles(settings),
+        "build_user_splits": lambda: build_user_evaluation_splits(settings),
+        "build_user_splits_pilot": lambda: build_user_splits_pilot(settings),
+        "user_baseline": lambda: run_user_baseline(settings),
+        "user_evaluate": lambda: evaluate_user_baseline(settings),
+        "user_experiment": lambda: run_user_experiment(settings),
+        "user_llm_dry_run": lambda: run_user_llm_dry_run(settings),
+        "llm_check": lambda: run_llm_check(settings),
+        "llm_pilot_readiness": lambda: build_llm_pilot_readiness_report(settings),
+        "user_llm": lambda: run_user_llm_pilot(settings),
+        "user_llm_evaluate": lambda: evaluate_user_llm(settings),
+        "case_studies": lambda: generate_case_studies(settings),
+        "recommendation_examples": lambda: generate_recommendation_examples(settings),
+        "thesis_tables": lambda: generate_thesis_tables(settings),
+        "analysis": lambda: run_analysis_suite(settings),
+        "select_final_experiment": lambda: select_final_experiment(settings),
+        "export_thesis_results": lambda: export_thesis_results(settings),
+        "demo_info": lambda: run_demo_info_step(settings.reports_dir),
+        "normalize_scenarios": lambda: normalize_scenarios_file(settings),
+        "validate_scenarios": lambda: validate_scenarios_from_artifacts(settings),
+        "readiness": lambda: build_experiment_readiness_report(settings),
+        "smoke_test": lambda: run_smoke_test(settings),
+    }
+
+    if step in simple_step_handlers:
+        simple_step_handlers[step]()
+        return
 
     reviews_df: pd.DataFrame | None = None
     cleaned_reviews_df: pd.DataFrame | None = None
@@ -220,206 +334,21 @@ def run_pipeline(args: argparse.Namespace) -> None:
     scenarios: list[Scenario] = []
     baseline_results: list[RecommendationRecord] = []
 
-    if step == "list_games":
-        export_available_games(settings)
-        return
-
-    if step == "discover_datasets":
-        reports = discover_datasets(settings)
-        print(f"Dataset discovery completed: {len(reports)} CSV file(s) inspected.")
-        return
-
-    if step == "inspect_raw":
-        report = inspect_raw_dataset(settings)
-        print(
-            "Raw inspection completed: "
-            f"rows={report['raw_row_count']}, "
-            f"author.steamid_non_empty={report['author_steamid_non_empty_count']}"
-        )
-        return
-
-    if step == "schema_check":
-        report = run_schema_check(settings)
-        print(
-            "Schema check completed: "
-            f"status={report['status']}, "
-            f"user_mode={report['required_for_user_mode_present']}"
-        )
-        return
-
-    if step == "data_diagnostics":
-        run_data_diagnostics(settings)
-        return
-
-    if step == "preflight":
-        build_preflight_report(settings)
-        return
-
-    if step == "preprocess":
-        run_chunked_preprocessing(settings, mode="full")
-        logger.info("Saved cleaned reviews to %s", settings.reviews_clean_path)
-        return
-
-    if step == "preprocess_debug":
-        run_chunked_preprocessing(settings, mode="debug")
-        logger.info("Saved debug cleaned reviews to %s", settings.reviews_clean_debug_path)
-        return
-
-    if step == "preprocess_subset":
-        run_chunked_preprocessing(settings, mode="subset")
-        logger.info("Saved subset cleaned reviews to %s", settings.reviews_clean_subset_path)
-        return
-
-    if step == "preprocess_balanced_subset":
-        run_balanced_subset_preprocessing(settings)
-        logger.info(
-            "Saved balanced subset cleaned reviews to %s",
-            settings.reviews_clean_balanced_subset_path,
-        )
-        return
-
-    if step == "preprocess_status":
-        print_preprocessing_status(settings)
-        return
-
-    if step == "run_experiment":
-        run_controlled_experiment(
-            settings=settings,
-            config_path=Path(args.config) if args.config else None,
-            allow_tiny_override=args.allow_tiny,
-            allow_synthetic_override=args.allow_synthetic,
-            run_llm_override=args.run_llm,
-        )
-        return
-
-    if step == "draft_scenarios":
-        generate_draft_scenarios(settings)
-        return
-
-    if step == "build_user_profiles":
-        build_user_profiles(settings)
-        return
-
-    if step == "build_user_splits":
-        build_user_evaluation_splits(settings)
-        return
-
-    if step == "build_user_splits_pilot":
-        build_user_splits_pilot(settings)
-        return
-
-    if step == "user_baseline":
-        run_user_baseline(settings)
-        return
-
-    if step == "user_evaluate":
-        evaluate_user_baseline(settings)
-        return
-
-    if step == "user_experiment":
-        run_user_experiment(settings)
-        return
-
-    if step == "user_llm_dry_run":
-        if args.config:
-            config_payload, _ = load_experiment_config(settings.project_root, config_path=Path(args.config))
-            apply_experiment_settings_overrides(settings, config_payload)
-        run_user_llm_dry_run(settings)
-        return
-
-    if step == "llm_check":
-        if args.config:
-            config_payload, _ = load_experiment_config(settings.project_root, config_path=Path(args.config))
-            apply_experiment_settings_overrides(settings, config_payload)
-        run_llm_check(settings)
-        return
-
-    if step == "llm_pilot_readiness":
-        build_llm_pilot_readiness_report(settings)
-        return
-
-    if step == "user_llm":
-        run_user_llm_pilot(settings)
-        return
-
-    if step == "user_llm_evaluate":
-        evaluate_user_llm(settings)
-        return
-
-    if step == "case_studies":
-        generate_case_studies(settings)
-        return
-
-    if step == "recommendation_examples":
-        generate_recommendation_examples(settings)
-        return
-
-    if step == "thesis_tables":
-        generate_thesis_tables(settings)
-        return
-
-    if step == "analysis":
-        run_analysis_suite(settings)
-        return
-
-    if step == "select_final_experiment":
-        select_final_experiment(settings)
-        return
-
-    if step == "export_thesis_results":
-        export_thesis_results(settings)
-        return
-
-    if step == "demo_info":
-        final_dir = settings.reports_dir / "final_thesis_artifacts"
-        required_files = [
-            "final_experiment_summary.md",
-            "experiment_manifest.json",
-            "user_llm_reranking_summary.json",
-            "user_llm_metrics_summary.csv",
-            "user_rank_comparison.csv",
-            "user_llm_explanation_examples.md",
-            "balanced_subset_methodology_note.md",
-        ]
-        print("To launch the local demo interface:")
-        print("streamlit run app.py")
-        print()
-        print("Artifact check:")
-        for filename in required_files:
-            exists = (final_dir / filename).exists()
-            status = "OK" if exists else "MISSING"
-            print(f"- {filename}: {status}")
-        return
-
-    if step == "normalize_scenarios":
-        normalize_scenarios_file(settings)
-        return
-
-    if step == "validate_scenarios":
-        validate_scenarios_from_artifacts(settings)
-        return
-
-    if step == "readiness":
-        build_experiment_readiness_report(settings)
-        return
-
-    if step == "smoke_test":
-        run_smoke_test(settings)
-        return
+    pipeline_steps = {"build_cards", "build_scenarios", "baseline", "llm", "evaluate", "all"}
+    scenario_steps = {"build_scenarios", "baseline", "llm", "evaluate", "all"}
+    baseline_steps = {"baseline", "llm", "evaluate", "all"}
+    llm_steps = {"llm", "evaluate", "all"}
+    evaluation_steps = {"evaluate", "all"}
 
     if step == "all":
         reviews_df = load_reviews_csv(settings)
         cleaned_reviews_df = preprocess_reviews(reviews_df, settings)
         logger.info("Saved cleaned reviews to %s", settings.reviews_clean_path)
 
-    if step in {"build_cards", "build_scenarios", "baseline", "llm", "evaluate"}:
-        if not settings.active_processed_reviews_path.exists():
-            raise RuntimeError(
-                "Cleaned reviews are required before downstream steps. Run `./.venv/bin/python main.py --step preprocess` first."
-            )
-        cleaned_reviews_df = pd.read_csv(settings.active_processed_reviews_path)
+    if step in pipeline_steps - {"all"}:
+        cleaned_reviews_df = load_required_cleaned_reviews()
 
-    if step in {"build_cards", "build_scenarios", "baseline", "llm", "evaluate", "all"}:
+    if step in pipeline_steps:
         if cleaned_reviews_df is None:
             raise RuntimeError("Cleaned reviews are required before building game cards.")
         game_cards = build_game_cards(cleaned_reviews_df, settings)
@@ -427,26 +356,26 @@ def run_pipeline(args: argparse.Namespace) -> None:
         if step == "build_cards":
             return
 
-    if step in {"build_scenarios", "baseline", "llm", "evaluate", "all"}:
+    if step in scenario_steps:
         scenarios = build_scenarios(game_cards, settings)
         logger.info("Saved %s scenarios to %s", len(scenarios), settings.scenarios_output_path)
         if step == "build_scenarios":
             return
 
-    if step in {"baseline", "llm", "evaluate", "all"}:
+    if step in baseline_steps:
         baseline_results = run_baseline(scenarios, game_cards, settings)
         logger.info("Saved baseline recommendations to %s", settings.baseline_results_path)
         if step == "baseline":
             return
 
     llm_results: list[RecommendationRecord] = []
-    if step in {"llm", "evaluate", "all"}:
+    if step in llm_steps:
         llm_results = run_llm_reranker(scenarios, baseline_results, game_cards, settings)
         logger.info("Saved LLM recommendation records to %s", settings.llm_results_path)
         if step == "llm":
             return
 
-    if step in {"evaluate", "all"}:
+    if step in evaluation_steps:
         if cleaned_reviews_df is None:
             raise RuntimeError("Cleaned reviews are required for evaluation.")
         evaluate_recommendations(

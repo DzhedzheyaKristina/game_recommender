@@ -1,4 +1,3 @@
-"""Lightweight user-based recommendation helpers for the full Steam Reviews dataset."""
 
 from __future__ import annotations
 
@@ -18,7 +17,6 @@ from src.utils import get_logger, read_jsonl, write_jsonl
 
 
 def load_clean_reviews_for_user_mode(settings: Settings) -> pd.DataFrame | None:
-    """Load cleaned reviews and return None when user mode is unavailable."""
 
     logger = get_logger()
     active_path = settings.active_processed_reviews_path
@@ -61,7 +59,6 @@ def load_clean_reviews_for_user_mode(settings: Settings) -> pd.DataFrame | None:
 
 
 def get_active_user_splits_path(settings: Settings) -> Path:
-    """Return the split file that should be used for the current workflow."""
 
     if bool(getattr(settings, "use_pilot_splits", False)):
         return getattr(settings, "pilot_splits_path", settings.user_splits_path)
@@ -69,13 +66,11 @@ def get_active_user_splits_path(settings: Settings) -> Path:
 
 
 def get_active_user_split_mode(settings: Settings) -> str:
-    """Return the active split mode label for the current workflow."""
 
     return "pilot" if bool(getattr(settings, "use_pilot_splits", False)) else "main"
 
 
 def load_game_cards_by_id(settings: Settings) -> dict[str, GameCard]:
-    """Load game cards into an id lookup when available."""
 
     if not settings.game_cards_path.exists():
         return {}
@@ -90,7 +85,6 @@ def build_candidate_game_ids_for_user(
     settings: Settings,
     vectorizer: TfidfVectorizer | None = None,
 ) -> list[str]:
-    """Build a candidate pool that always contains the holdout games."""
 
     all_game_ids = list(game_cards_by_id.keys()) or user_reviews["game_id"].astype(str).drop_duplicates().tolist()
     reviewed_game_ids = user_reviews["game_id"].astype(str).drop_duplicates().tolist()
@@ -146,7 +140,6 @@ def score_candidate_games_from_train(
     game_cards_by_id: dict[str, GameCard],
     vectorizer: TfidfVectorizer | None = None,
 ) -> list[tuple[str, float]]:
-    """Score candidate games against the user's positive training games."""
 
     candidate_ids = [game_id for game_id in candidate_game_ids if game_id in game_cards_by_id]
     if not candidate_ids:
@@ -179,7 +172,6 @@ def build_user_split_record(
     settings: Settings,
     vectorizer: TfidfVectorizer | None = None,
 ) -> dict[str, object] | None:
-    """Build one split record with an explicit candidate pool."""
 
     ordered_reviews = user_reviews.sort_values(
         by=["timestamp_created", "review_id"],
@@ -244,7 +236,6 @@ def build_user_split_diagnostics_frame(
     settings: Settings,
     splits: list[dict[str, object]],
 ) -> pd.DataFrame:
-    """Build diagnostics for user evaluation splits."""
 
     rows: list[dict[str, object]] = []
     for split in splits:
@@ -295,7 +286,6 @@ def save_user_split_diagnostics(
     path_markdown: Path,
     title: str,
 ) -> dict[str, object]:
-    """Save split diagnostics as JSON and markdown."""
 
     diagnostics_df = build_user_split_diagnostics_frame(settings, splits)
     reason_counts = Counter()
@@ -354,7 +344,6 @@ def save_user_split_diagnostics(
 
 
 def deduplicate_preserve_order(values: list[str]) -> list[str]:
-    """Return values without duplicates while preserving order."""
 
     seen: set[str] = set()
     result: list[str] = []
@@ -367,19 +356,16 @@ def deduplicate_preserve_order(values: list[str]) -> list[str]:
 
 
 def format_rank_value(rank: int | None) -> int | str:
-    """Format a rank for report output."""
 
     return "not_found" if rank is None else int(rank)
 
 
 def is_hit_at_k(rank: int | None, k: int) -> bool:
-    """Return whether a rank is within the top-k."""
 
     return bool(rank is not None and rank <= k)
 
 
 def dataframe_to_markdown(frame: pd.DataFrame) -> str:
-    """Render a tiny markdown table."""
 
     if frame.empty:
         return "_No rows available._"
@@ -395,7 +381,6 @@ def dataframe_to_markdown(frame: pd.DataFrame) -> str:
 
 
 def summarize_user_eligibility(settings: Settings, reviews_df: pd.DataFrame) -> dict[str, int | bool]:
-    """Compute user-based availability statistics from cleaned reviews."""
 
     if "user_id" not in reviews_df.columns:
         return {
@@ -443,7 +428,6 @@ def summarize_user_eligibility(settings: Settings, reviews_df: pd.DataFrame) -> 
 
 
 def build_user_profiles(settings: Settings) -> list[dict[str, object]]:
-    """Build compact user preference profiles from cleaned review histories."""
 
     logger = get_logger()
     reviews_df = load_clean_reviews_for_user_mode(settings)
@@ -495,7 +479,6 @@ def build_user_profiles(settings: Settings) -> list[dict[str, object]]:
 
 
 def build_user_evaluation_splits(settings: Settings) -> list[dict[str, object]]:
-    """Create controlled holdout splits with explicit candidate pools."""
 
     return _build_user_splits(
         settings=settings,
@@ -511,7 +494,6 @@ def build_user_evaluation_splits(settings: Settings) -> list[dict[str, object]]:
 
 
 def build_user_splits_pilot(settings: Settings) -> list[dict[str, object]]:
-    """Create pilot-friendly splits with holdouts guaranteed in the candidate pool."""
 
     return _build_user_splits(
         settings=settings,
@@ -538,7 +520,6 @@ def _build_user_splits(
     pilot_mode: bool,
     title: str,
 ) -> list[dict[str, object]]:
-    """Shared split builder for the main and pilot workflows."""
 
     logger = get_logger()
     profiles = read_jsonl(settings.user_profiles_path)
@@ -692,7 +673,6 @@ def _build_user_splits(
 
 
 def run_user_baseline(settings: Settings) -> list[dict[str, object]]:
-    """Rank game cards for user profiles using TF-IDF over held-in liked games."""
 
     logger = get_logger()
     split_path = get_active_user_splits_path(settings)
@@ -769,7 +749,6 @@ def run_user_baseline(settings: Settings) -> list[dict[str, object]]:
 
 
 def evaluate_user_baseline(settings: Settings) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Evaluate user-based baseline recommendations against holdout games."""
 
     logger = get_logger()
     split_path = get_active_user_splits_path(settings)
@@ -842,7 +821,6 @@ def evaluate_user_baseline(settings: Settings) -> tuple[pd.DataFrame, pd.DataFra
 
 
 def run_user_experiment(settings: Settings) -> None:
-    """Run the full user-based baseline experiment when user ids are available."""
 
     if not settings.active_processed_reviews_path.exists():
         logger = get_logger()
@@ -860,7 +838,6 @@ def run_user_experiment(settings: Settings) -> None:
 
 
 def build_masked_user_lookup(user_ids) -> dict[str, str]:
-    """Create stable masked identifiers for human-readable reports."""
 
     return {
         str(user_id): f"user_{index:03d}"
@@ -869,7 +846,6 @@ def build_masked_user_lookup(user_ids) -> dict[str, str]:
 
 
 def group_rows_by_user(rows: list[dict[str, object]]) -> dict[str, list[dict[str, object]]]:
-    """Group row-wise user recommendation outputs by user id."""
 
     grouped: dict[str, list[dict[str, object]]] = {}
     for row in rows:
@@ -879,7 +855,6 @@ def group_rows_by_user(rows: list[dict[str, object]]) -> dict[str, list[dict[str
 
 
 def load_json_if_exists(path) -> dict[str, object]:
-    """Load a JSON file when it exists."""
 
     if not path.exists():
         return {}

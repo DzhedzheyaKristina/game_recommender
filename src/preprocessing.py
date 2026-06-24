@@ -1,4 +1,3 @@
-"""Memory-safe preprocessing for Steam review CSV files."""
 
 from __future__ import annotations
 
@@ -133,11 +132,10 @@ BALANCED_SUBSET_NOTE = (
 
 
 class PreprocessingInterrupted(RuntimeError):
-    """Raised when a long-running preprocessing job is interrupted."""
+    pass
 
 
 def preprocess_reviews(reviews_df: pd.DataFrame, settings: Settings) -> pd.DataFrame:
-    """Fallback in-memory preprocessing used only for small dataframes."""
 
     validate_preprocessing_settings(settings)
     normalized_df = normalize_chunk_dataframe(reviews_df)
@@ -180,7 +178,6 @@ def run_chunked_preprocessing(
     *,
     mode: str = "full",
 ) -> dict[str, object]:
-    """Run chunked preprocessing directly from the raw CSV."""
 
     logger = get_logger()
     validate_preprocessing_settings(settings)
@@ -329,7 +326,6 @@ def run_chunked_preprocessing(
 
 
 def run_balanced_subset_preprocessing(settings: Settings) -> dict[str, object]:
-    """Build a more diverse research subset using a two-pass chunked scan."""
 
     logger = get_logger()
     validate_preprocessing_settings(settings)
@@ -599,7 +595,6 @@ def run_balanced_subset_preprocessing(settings: Settings) -> dict[str, object]:
 
 
 def resolve_preprocessing_run_paths(settings: Settings, mode: str) -> dict[str, Path]:
-    """Resolve output paths for one preprocessing mode."""
 
     if mode == "debug":
         output_path = settings.reviews_clean_debug_path
@@ -641,7 +636,6 @@ def resolve_preprocessing_run_paths(settings: Settings, mode: str) -> dict[str, 
 
 
 def resolve_max_rows_for_mode(settings: Settings, mode: str) -> int | None:
-    """Resolve the row cap for the selected preprocessing mode."""
 
     if mode == "debug":
         return (
@@ -662,7 +656,6 @@ def prepare_preprocessing_outputs(
     *,
     mode: str,
 ) -> None:
-    """Clear stale or incomplete outputs before a new preprocessing run."""
 
     logger = get_logger()
     run_paths["output_path"].parent.mkdir(parents=True, exist_ok=True)
@@ -693,7 +686,6 @@ def prepare_preprocessing_outputs(
 
 
 def remove_stale_downstream_artifacts(settings: Settings) -> None:
-    """Delete downstream artifacts that depend on reviews_clean.csv."""
 
     removed_any = False
     for attr_name in STALE_ARTIFACT_PATHS:
@@ -714,7 +706,6 @@ def collect_raw_game_sampling_stats(
     chunksize: int,
     minimal_columns: list[str],
 ) -> tuple[list[dict[str, object]], int]:
-    """Pass 1: collect per-game sampling stats without loading the full CSV."""
 
     canonical_to_raw = {
         normalize_raw_column_name(raw_name): raw_name
@@ -767,7 +758,6 @@ def select_balanced_subset_games(
     game_stats: list[dict[str, object]],
     settings: Settings,
 ) -> list[dict[str, object]]:
-    """Select a manageable set of games for the balanced subset."""
 
     eligible = [
         record
@@ -787,7 +777,6 @@ def select_balanced_subset_games(
 
 
 def save_raw_game_sampling_stats(settings: Settings, records: list[dict[str, object]]) -> None:
-    """Persist selected game sampling statistics."""
 
     frame = pd.DataFrame(records)
     if frame.empty:
@@ -817,7 +806,6 @@ def enforce_per_game_row_cap(
     per_game_limit: int,
     remaining_total: int,
 ) -> pd.DataFrame:
-    """Limit how many rows each selected game contributes before cleaning."""
 
     if chunk.empty or remaining_total <= 0:
         return chunk.iloc[0:0].copy()
@@ -844,7 +832,6 @@ def enforce_per_game_row_cap_after_cleaning(
     per_game_limit: int,
     remaining_total: int,
 ) -> pd.DataFrame:
-    """Re-apply the cap after cleaning because some rows may have been removed."""
 
     if chunk.empty or remaining_total <= 0:
         return chunk.iloc[0:0].copy()
@@ -872,7 +859,6 @@ def update_balanced_subset_user_stats(
     per_game_written_counts: Counter[str],
     per_game_user_sets: dict[str, set[int | str]],
 ) -> None:
-    """Update user and selected-game counters from one balanced subset chunk."""
 
     for row in cleaned_chunk.itertuples(index=False):
         game_id = str(row.game_id)
@@ -893,7 +879,6 @@ def estimate_eligible_users(
     user_positive_counts: Counter[int | str],
     settings: Settings,
 ) -> int:
-    """Estimate how many users are eligible for user-based evaluation."""
 
     eligible = 0
     for user_id, review_count in user_review_counts.items():
@@ -919,7 +904,6 @@ def build_balanced_subset_summary(
     started_at: str,
     finished_at: str,
 ) -> dict[str, object]:
-    """Build the dedicated summary for balanced subset preprocessing."""
 
     return {
         "mode": "balanced_subset",
@@ -974,7 +958,6 @@ def build_progress_payload_from_stats(
     *,
     status: str,
 ) -> dict[str, object]:
-    """Build the generic progress payload from live stats."""
 
     duration_seconds_so_far = (
         round(time.monotonic() - float(stats["_started_monotonic"]), 2)
@@ -1008,7 +991,6 @@ def build_progress_payload_from_summary(
     *,
     status: str,
 ) -> dict[str, object]:
-    """Build the generic progress payload from a completed summary."""
 
     return {
         "dataset_path": summary.get("dataset_path", summary.get("raw_dataset_path", "")),
@@ -1033,7 +1015,6 @@ def build_progress_payload_from_summary(
 
 
 def normalize_chunk_dataframe(raw_chunk: pd.DataFrame) -> pd.DataFrame:
-    """Map raw source columns in one chunk to the internal normalized schema."""
 
     normalized: dict[str, object] = {}
     for source_name, target_name in SOURCE_TO_NORMALIZED_COLUMNS.items():
@@ -1046,7 +1027,6 @@ def normalize_chunk_dataframe(raw_chunk: pd.DataFrame) -> pd.DataFrame:
 
 
 def extract_source_series(raw_chunk: pd.DataFrame, canonical_name: str) -> pd.Series:
-    """Resolve one canonical source column from a raw chunk."""
 
     matched_columns = [
         raw_column
@@ -1067,7 +1047,6 @@ def clean_normalized_chunk(
     tracked_review_ids: set[int | str],
     track_ids: bool,
 ) -> tuple[pd.DataFrame, dict[str, int]]:
-    """Clean and filter one normalized chunk."""
 
     chunk = normalized_chunk.copy()
     chunk["game_id"] = normalize_identifier_series(chunk["game_id"])
@@ -1146,7 +1125,6 @@ def filter_duplicate_review_ids(
     track_ids: bool,
     chunk_stats: dict[str, int],
 ) -> pd.DataFrame:
-    """Drop duplicate review ids within and across chunks."""
 
     if chunk.empty:
         return chunk
@@ -1179,7 +1157,6 @@ def update_exact_trackers(
     unique_user_ids: set[int | str],
     language_counter: Counter[str],
 ) -> None:
-    """Update exact unique-id sets and language counts."""
 
     for user_id in normalize_identifier_series(normalized_chunk["user_id"]).tolist():
         if user_id:
@@ -1206,7 +1183,6 @@ def init_preprocessing_stats(
     final_output_path: Path,
     temp_output_path: Path,
 ) -> dict[str, object]:
-    """Initialize preprocessing counters."""
 
     started_at = datetime.now(timezone.utc)
     return {
@@ -1257,7 +1233,6 @@ def update_stats_from_chunk(
     cleaned_chunk: pd.DataFrame,
     chunk_stats: dict[str, int],
 ) -> None:
-    """Update cumulative preprocessing counters from one chunk."""
 
     stats["raw_author_steamid_non_empty_count"] += int(
         normalize_identifier_series(normalized_chunk["user_id"]).str.len().gt(0).sum()
@@ -1278,7 +1253,6 @@ def update_stats_from_chunk(
 
 
 def finalize_stats(stats: dict[str, object]) -> None:
-    """Finalize timestamps and mapping-status fields."""
 
     stats["processed_user_id_non_empty_count"] = int(stats["reviews_with_user_id"])
     stats["processed_user_id_empty_count"] = int(stats["reviews_without_user_id"])
@@ -1300,7 +1274,6 @@ def finalize_stats(stats: dict[str, object]) -> None:
 
 
 def build_preprocessing_summary(stats: dict[str, object]) -> dict[str, object]:
-    """Convert internal counters to a JSON-friendly summary."""
 
     return {
         "dataset_path": stats["dataset_path"],
@@ -1358,7 +1331,6 @@ def write_preprocessing_outputs(
     *,
     mode: str,
 ) -> None:
-    """Write the final summary and comparison outputs for one run."""
 
     write_preprocessing_summary(
         summary_path=run_paths["summary_path"],
@@ -1379,7 +1351,6 @@ def write_preprocessing_summary(
     markdown_path: Path,
     summary: dict[str, object],
 ) -> None:
-    """Persist preprocessing statistics for experiment reporting."""
 
     with summary_path.open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2, ensure_ascii=False)
@@ -1395,7 +1366,6 @@ def write_progress_report(
     *,
     status: str,
 ) -> None:
-    """Persist a lightweight progress file during preprocessing."""
 
     now = datetime.now(timezone.utc).isoformat()
     if "_started_monotonic" in stats:
@@ -1440,7 +1410,6 @@ def write_progress_payload(
     settings: Settings,
     payload: dict[str, object],
 ) -> None:
-    """Persist an already built preprocessing progress payload."""
 
     settings.preprocessing_progress_json_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
@@ -1453,7 +1422,6 @@ def write_progress_payload(
 
 
 def build_preprocessing_progress_markdown(progress: dict[str, object]) -> str:
-    """Render the current preprocessing progress as markdown."""
 
     return "\n".join(
         [
@@ -1488,7 +1456,6 @@ def write_raw_processed_comparison(
     markdown_path: Path,
     summary: dict[str, object],
 ) -> None:
-    """Persist a direct raw-vs-processed user-id preservation report."""
 
     comparison = {
         "raw_row_count": int(summary["raw_row_count"]),
@@ -1516,7 +1483,6 @@ def write_raw_processed_comparison(
 
 
 def build_preprocessing_summary_markdown(summary: dict[str, object]) -> str:
-    """Render preprocessing statistics as thesis-friendly markdown."""
 
     language_lines = [
         f"- {language}: {count}"
@@ -1571,7 +1537,6 @@ def build_preprocessing_summary_markdown(summary: dict[str, object]) -> str:
 
 
 def build_raw_processed_comparison_markdown(report: dict[str, object]) -> str:
-    """Render the raw-vs-processed comparison as markdown."""
 
     warning_lines = [f"- {report['warning']}"] if report["warning"] else ["- none"]
     return "\n".join(
@@ -1594,7 +1559,6 @@ def build_raw_processed_comparison_markdown(report: dict[str, object]) -> str:
 
 
 def clean_review_text(text: str) -> str:
-    """Remove noisy whitespace while keeping review content intact."""
 
     text = text.replace("\r", " ").replace("\n", " ")
     text = re.sub(r"\s+", " ", text)
@@ -1602,7 +1566,6 @@ def clean_review_text(text: str) -> str:
 
 
 def truncate_review_text(text: str, max_chars: int) -> str:
-    """Truncate long reviews while preserving readable boundaries."""
 
     if len(text) <= max_chars:
         return text
@@ -1610,7 +1573,6 @@ def truncate_review_text(text: str, max_chars: int) -> str:
 
 
 def normalize_boolean_value(value: object) -> bool | None:
-    """Normalize dataset boolean-like values to Python booleans."""
 
     if isinstance(value, bool):
         return value
@@ -1625,7 +1587,6 @@ def normalize_boolean_value(value: object) -> bool | None:
 
 
 def normalize_language_filter(value: str | None) -> str | None:
-    """Normalize supported language filter values."""
 
     if value is None:
         return None
@@ -1638,14 +1599,12 @@ def normalize_language_filter(value: str | None) -> str | None:
 
 
 def normalize_language_value(value: str) -> str:
-    """Normalize dataset language values while keeping unknown labels intact."""
 
     normalized = value.strip().lower()
     return LANGUAGE_ALIASES.get(normalized, normalized)
 
 
 def normalize_timestamp_series(values: pd.Series) -> pd.Series:
-    """Convert mixed timestamp columns to ISO strings."""
 
     numeric = pd.to_numeric(values, errors="coerce")
     parsed_numeric = pd.to_datetime(numeric, unit="s", errors="coerce", utc=True)
@@ -1663,7 +1622,6 @@ def determine_user_id_mapping_status(
     raw_author_steamid_non_empty_count: int,
     processed_user_id_non_empty_count: int,
 ) -> str:
-    """Classify whether raw author.steamid values survived preprocessing."""
 
     if not raw_author_steamid_present:
         return "source_column_missing"
@@ -1675,7 +1633,6 @@ def determine_user_id_mapping_status(
 
 
 def identifier_tracking_key(value: str) -> int | str:
-    """Convert identifier strings to smaller exact tracking keys when possible."""
 
     if value.isdigit():
         return int(value)
@@ -1683,7 +1640,6 @@ def identifier_tracking_key(value: str) -> int | str:
 
 
 def validate_preprocessing_settings(settings: Settings) -> None:
-    """Validate preprocessing settings loaded from configuration."""
 
     if settings.min_review_chars < 0:
         raise ValueError("MIN_REVIEW_CHARS must be non-negative.")
@@ -1702,7 +1658,6 @@ def log_preprocessing_summary(
     *,
     mode: str,
 ) -> None:
-    """Print preprocessing statistics to the console."""
 
     label = (
         "Preprocessing debug summary"
@@ -1722,7 +1677,6 @@ def log_preprocessing_summary(
 
 
 def print_preprocessing_status(settings: Settings) -> bool:
-    """Print the latest preprocessing progress status."""
 
     if not settings.preprocessing_progress_json_path.exists():
         print("No preprocessing progress file found.")

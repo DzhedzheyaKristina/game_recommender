@@ -1,4 +1,3 @@
-"""Artifact-based helpers for diagnostics, scenario authoring, and readiness."""
 
 from __future__ import annotations
 
@@ -51,7 +50,6 @@ from src.utils import get_logger, model_to_dict, read_jsonl, write_jsonl
 
 
 def run_data_diagnostics(settings: Settings) -> dict[str, object] | None:
-    """Create dataset diagnostics and charts from cleaned reviews."""
 
     logger = get_logger()
     cleaned_reviews_path = settings.active_processed_reviews_path
@@ -245,7 +243,6 @@ def run_data_diagnostics(settings: Settings) -> dict[str, object] | None:
 
 
 def export_available_games(settings: Settings) -> pd.DataFrame:
-    """Export compact game lists to help manual scenario design."""
 
     game_cards = load_game_cards_from_artifact(settings.game_cards_path)
     rows = [
@@ -285,7 +282,6 @@ def export_available_games(settings: Settings) -> pd.DataFrame:
 
 
 def generate_draft_scenarios(settings: Settings) -> list[dict[str, object]]:
-    """Generate draft manual scenarios from game-card similarity."""
 
     logger = get_logger()
     game_cards = load_game_cards_from_artifact(settings.game_cards_path)
@@ -361,7 +357,6 @@ def generate_draft_scenarios(settings: Settings) -> list[dict[str, object]]:
 
 
 def normalize_scenarios_file(settings: Settings) -> pd.DataFrame | None:
-    """Normalize the configured external scenario file to canonical JSONL and validate it."""
 
     logger = get_logger()
     if settings.scenarios_file is None:
@@ -399,7 +394,6 @@ def normalize_scenarios_file(settings: Settings) -> pd.DataFrame | None:
 
 
 def validate_scenarios_from_artifacts(settings: Settings) -> pd.DataFrame:
-    """Validate scenario definitions against the currently available game cards."""
 
     scenario_records, scenario_source = load_scenario_records_for_validation(settings)
     return validate_scenario_records(
@@ -414,7 +408,6 @@ def validate_scenario_records(
     scenario_records: list[dict[str, object]],
     source_label: str,
 ) -> pd.DataFrame:
-    """Validate raw scenario records and save a report."""
 
     logger = get_logger()
     game_cards = load_game_cards_from_artifact(settings.game_cards_path)
@@ -460,7 +453,6 @@ def validate_scenario_records(
 
 
 def build_experiment_readiness_report(settings: Settings) -> dict[str, object]:
-    """Inspect existing artifacts and summarize thesis-experiment readiness."""
 
     logger = get_logger()
     active_context = build_active_experiment_context(settings)
@@ -628,7 +620,6 @@ def build_experiment_readiness_report(settings: Settings) -> dict[str, object]:
 
 
 def build_llm_pilot_readiness_report(settings: Settings) -> dict[str, object]:
-    """Check readiness for a controlled LLM pilot without making API calls."""
 
     logger = get_logger()
     response_language = normalize_llm_response_language(getattr(settings, "llm_response_language", "ru"))
@@ -818,7 +809,6 @@ def build_llm_pilot_readiness_report(settings: Settings) -> dict[str, object]:
 
 
 def summarize_games(reviews_df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate review-level data to per-game diagnostics."""
 
     summary = (
         reviews_df.groupby(["game_id", "game_title"], as_index=False)
@@ -837,7 +827,6 @@ def summarize_games(reviews_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def summarize_users(reviews_df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate review-level data to per-user diagnostics."""
 
     if "user_id" not in reviews_df.columns:
         return pd.DataFrame(columns=["user_id", "review_count", "positive_review_count"])
@@ -851,7 +840,6 @@ def summarize_users(reviews_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def records_for_report(frame: pd.DataFrame, columns: list[str]) -> list[dict[str, object]]:
-    """Convert a small frame slice to JSON-friendly row records."""
 
     if frame.empty:
         return []
@@ -860,7 +848,6 @@ def records_for_report(frame: pd.DataFrame, columns: list[str]) -> list[dict[str
 
 
 def get_active_preprocessing_summary_path(settings: Settings) -> Path:
-    """Return the summary path that corresponds to the active cleaned reviews file."""
 
     if settings.active_processed_reviews_path == settings.reviews_clean_subset_path:
         return settings.preprocessing_subset_summary_path
@@ -872,7 +859,6 @@ def get_active_preprocessing_summary_path(settings: Settings) -> Path:
 
 
 def get_active_dataset_mode(settings: Settings) -> str:
-    """Classify the currently active processed dataset path."""
 
     path = settings.active_processed_reviews_path
     if path == settings.reviews_clean_balanced_subset_path:
@@ -887,13 +873,11 @@ def get_active_dataset_mode(settings: Settings) -> str:
 
 
 def get_active_processed_reviews_summary_path(settings: Settings) -> Path:
-    """Return the preprocessing summary for the active processed dataset."""
 
     return get_active_preprocessing_summary_path(settings)
 
 
 def load_user_based_artifact_summary(settings: Settings) -> dict[str, object]:
-    """Load the user-based artifact summaries when they exist."""
 
     active_split_path = get_active_user_splits_path(settings)
     active_split_mode = get_active_user_split_mode(settings)
@@ -945,7 +929,6 @@ def load_user_based_artifact_summary(settings: Settings) -> dict[str, object]:
 
 
 def build_active_experiment_context(settings: Settings) -> dict[str, object]:
-    """Summarize the currently active experiment path and readiness."""
 
     active_mode = get_active_dataset_mode(settings)
     active_processed_reviews = str(settings.active_processed_reviews_path)
@@ -1005,7 +988,6 @@ def build_active_experiment_context(settings: Settings) -> dict[str, object]:
 
 
 def cleaned_reviews_artifact_is_valid(path: Path) -> bool:
-    """Check whether a cleaned reviews CSV has the expected normalized header."""
 
     if not path.exists():
         return False
@@ -1023,7 +1005,6 @@ def save_bar_chart(
     ylabel: str,
     output_path: Path,
 ) -> None:
-    """Save a simple bar chart."""
 
     fig, ax = plt.subplots(figsize=(8, 4.5))
     labels = list(values.keys())
@@ -1039,7 +1020,6 @@ def save_bar_chart(
 
 
 def save_top_games_chart(game_summary: pd.DataFrame, output_path: Path) -> None:
-    """Plot the top games by review count."""
 
     top_games = game_summary.head(20).sort_values("review_count", ascending=True)
     fig, ax = plt.subplots(figsize=(9, 6))
@@ -1053,7 +1033,6 @@ def save_top_games_chart(game_summary: pd.DataFrame, output_path: Path) -> None:
 
 
 def save_histogram(values, title: str, xlabel: str, output_path: Path) -> None:
-    """Save a compact histogram when numeric values are available."""
 
     numeric = pd.to_numeric(values, errors="coerce").dropna()
     fig, ax = plt.subplots(figsize=(8, 4.5))
@@ -1072,7 +1051,6 @@ def save_histogram(values, title: str, xlabel: str, output_path: Path) -> None:
 
 
 def numeric_statistics(values) -> dict[str, float | int]:
-    """Compute compact numeric summary statistics."""
 
     numeric = pd.to_numeric(values, errors="coerce").dropna()
     if numeric.empty:
@@ -1086,7 +1064,6 @@ def numeric_statistics(values) -> dict[str, float | int]:
 
 
 def build_data_diagnostics_markdown(diagnostics: dict[str, object]) -> str:
-    """Render data diagnostics as a thesis-friendly markdown report."""
 
     length_stats = diagnostics["review_length_statistics"]
     sections = [
@@ -1163,7 +1140,6 @@ def build_data_diagnostics_markdown(diagnostics: dict[str, object]) -> str:
 
 
 def dict_to_bullets(values: dict[str, object]) -> str:
-    """Render a small dictionary as markdown bullets."""
 
     if not values:
         return "- none"
@@ -1171,7 +1147,6 @@ def dict_to_bullets(values: dict[str, object]) -> str:
 
 
 def load_game_cards_from_artifact(path: Path) -> list[GameCard]:
-    """Load generated game cards from a JSONL artifact."""
 
     if not path.exists():
         raise FileNotFoundError(
@@ -1181,7 +1156,6 @@ def load_game_cards_from_artifact(path: Path) -> list[GameCard]:
 
 
 def load_optional_game_cards(path: Path) -> list[GameCard]:
-    """Load game cards when present, otherwise return an empty list."""
 
     if not path.exists():
         return []
@@ -1189,7 +1163,6 @@ def load_optional_game_cards(path: Path) -> list[GameCard]:
 
 
 def load_optional_records(path: Path) -> list[dict[str, object]]:
-    """Load JSONL records when present, otherwise return an empty list."""
 
     if not path.exists():
         return []
@@ -1199,7 +1172,6 @@ def load_optional_records(path: Path) -> list[dict[str, object]]:
 def load_scenario_records_for_validation(
     settings: Settings,
 ) -> tuple[list[dict[str, object]], str]:
-    """Load scenarios from the configured source or the processed artifact."""
 
     logger = get_logger()
     if settings.scenarios_file is not None:
@@ -1221,7 +1193,6 @@ def validate_single_scenario_record(
     valid_game_ids: set[str],
     top_k: int,
 ) -> dict[str, object]:
-    """Validate one raw scenario record and produce a report row."""
 
     raw_scenario_id = str(record.get("scenario_id", "")).strip()
     scenario_id = raw_scenario_id or f"<missing_scenario_id_{scenario_index}>"
@@ -1328,7 +1299,6 @@ def compute_candidate_pool(
     known_excluded_ids: list[str],
     known_candidate_ids: list[str],
 ) -> list[str]:
-    """Compute the valid candidate pool after scenario filtering."""
 
     blocked_ids = set(known_seed_ids) | set(known_excluded_ids)
     if known_candidate_ids:
@@ -1337,7 +1307,6 @@ def compute_candidate_pool(
 
 
 def format_unknown_game_ids(unknown_by_field: dict[str, list[str]]) -> str:
-    """Format missing id references into a compact report string."""
 
     parts = []
     for field_name, ids in unknown_by_field.items():
@@ -1347,7 +1316,6 @@ def format_unknown_game_ids(unknown_by_field: dict[str, list[str]]) -> str:
 
 
 def determine_scenario_mode(scenarios: list[dict[str, object]]) -> str:
-    """Describe whether the current scenarios are synthetic or manual/predefined."""
 
     if not scenarios:
         return "none"
@@ -1366,7 +1334,6 @@ def rank_similar_cards(
     matrix,
     id_to_index: dict[str, int],
 ) -> list[GameCard]:
-    """Rank other game cards by TF-IDF similarity to a seed card."""
 
     seed_index = id_to_index[seed_card.game_id]
     similarities = cosine_similarity(matrix[seed_index], matrix).flatten()
@@ -1383,7 +1350,6 @@ def rank_similar_cards(
 
 
 def build_draft_preference_text(seed_card: GameCard) -> str:
-    """Build a readable manual-draft preference description from one seed card."""
 
     positive_part = ", ".join(seed_card.positive_keywords[:4] or ["none"])
     negative_part = ", ".join(seed_card.negative_keywords[:3] or ["none"])
@@ -1395,7 +1361,6 @@ def build_draft_preference_text(seed_card: GameCard) -> str:
 
 
 def build_scenario_hint(card: GameCard) -> str:
-    """Generate a short scenario-design hint from existing card fields only."""
 
     positive_part = ", ".join(card.positive_keywords[:3] or ["positive reception"])
     negative_part = ", ".join(card.negative_keywords[:2] or ["few repeated complaints"])
@@ -1405,13 +1370,11 @@ def build_scenario_hint(card: GameCard) -> str:
 
 
 def first_or_empty(values: list[str]) -> str:
-    """Return the first list item or an empty string."""
 
     return values[0] if values else ""
 
 
 def scenario_record_to_csv_row(record: dict[str, object]) -> dict[str, object]:
-    """Convert a scenario record to a CSV-friendly row."""
 
     list_fields = {
         "seed_game_ids",
@@ -1429,7 +1392,6 @@ def scenario_record_to_csv_row(record: dict[str, object]) -> dict[str, object]:
 
 
 def deduplicate_preserve_order(values: list[str]) -> list[str]:
-    """Deduplicate strings while preserving the first occurrence order."""
 
     seen: set[str] = set()
     deduplicated: list[str] = []
@@ -1441,14 +1403,12 @@ def deduplicate_preserve_order(values: list[str]) -> list[str]:
 
 
 def write_json_report(path: Path, payload: dict[str, object]) -> None:
-    """Write a small JSON report."""
 
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2, ensure_ascii=False)
 
 
 def dataframe_to_markdown(frame: pd.DataFrame) -> str:
-    """Render a small markdown table without optional dependencies."""
 
     if frame.empty:
         return "_No rows available._"
@@ -1469,7 +1429,6 @@ def dataframe_to_markdown(frame: pd.DataFrame) -> str:
 
 
 def generate_case_studies(settings: Settings) -> dict[str, object]:
-    """Generate compact case-study artifacts from recommendation outputs."""
 
     logger = get_logger()
     artifacts = load_analysis_artifacts(settings)
@@ -1501,7 +1460,6 @@ def generate_case_studies(settings: Settings) -> dict[str, object]:
 
 
 def generate_recommendation_examples(settings: Settings) -> str:
-    """Generate a report-ready markdown file with recommendation examples."""
 
     artifacts = load_analysis_artifacts(settings)
     scenario_records = artifacts["scenario_records"]
@@ -1535,7 +1493,6 @@ def generate_recommendation_examples(settings: Settings) -> str:
 
 
 def generate_thesis_tables(settings: Settings) -> dict[str, str]:
-    """Generate markdown-ready tables for the thesis experimental chapter."""
 
     metrics_content = build_thesis_metrics_table(settings)
     user_metrics_content = build_user_thesis_metrics_table(settings)
@@ -1577,7 +1534,6 @@ def generate_thesis_tables(settings: Settings) -> dict[str, str]:
 
 
 def run_analysis_suite(settings: Settings) -> None:
-    """Run the local analysis/report helpers without triggering LLM calls."""
 
     run_data_diagnostics(settings)
     export_available_games(settings)
@@ -1589,7 +1545,6 @@ def run_analysis_suite(settings: Settings) -> None:
 
 
 def build_preflight_report(settings: Settings) -> dict[str, object]:
-    """Inspect environment and artifacts before a real thesis-scale experiment."""
 
     logger = get_logger()
     environment_report = run_environment_check(
@@ -1901,7 +1856,6 @@ def build_preflight_report(settings: Settings) -> dict[str, object]:
 
 
 def run_smoke_test(settings: Settings) -> dict[str, object]:
-    """Run a small baseline-only validation sequence on the current dataset."""
 
     logger = get_logger()
     report: dict[str, object] = {
@@ -1986,7 +1940,6 @@ def load_experiment_config(
     project_root: Path,
     config_path: Path | None = None,
 ) -> tuple[dict[str, object], Path | None]:
-    """Load an optional experiment configuration JSON file."""
 
     resolved_path = config_path
     if resolved_path is None:
@@ -2012,7 +1965,6 @@ def apply_experiment_settings_overrides(
     settings: Settings,
     config: dict[str, object],
 ) -> None:
-    """Apply supported experiment-config values onto runtime settings."""
 
     if "dataset_path" in config:
         settings.reviews_csv_path = resolve_local_path(
@@ -2112,7 +2064,6 @@ def build_experiment_runtime_config(
     allow_synthetic_override: bool,
     run_llm_override: bool,
 ) -> dict[str, object]:
-    """Combine defaults, config values, and simple CLI overrides."""
 
     experiment_name = str(
         config.get("experiment_name", "steam_reviews_experiment")
@@ -2188,7 +2139,6 @@ def run_controlled_experiment(
     allow_synthetic_override: bool = False,
     run_llm_override: bool = False,
 ) -> dict[str, object]:
-    """Run the thesis experiment with safety gates and versioned outputs."""
 
     logger = get_logger()
     config_payload, resolved_config_path = load_experiment_config(
@@ -2501,14 +2451,12 @@ def run_controlled_experiment(
 
 
 def resolve_local_path(project_root: Path, raw_path: str) -> Path:
-    """Resolve a potentially relative path against the project root."""
 
     path = Path(raw_path)
     return path if path.is_absolute() else project_root / path
 
 
 def create_experiment_output_folder(output_root: Path, experiment_name: str) -> Path:
-    """Create a timestamped experiment output folder."""
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     slug = re.sub(r"[^a-zA-Z0-9_-]+", "_", experiment_name).strip("_") or "experiment"
@@ -2523,7 +2471,6 @@ def copy_experiment_artifacts(
     experiment_dir: Path,
     manifest: dict[str, object],
 ) -> None:
-    """Copy selected artifacts into the versioned experiment folder."""
 
     balanced_subset_experiment = settings.active_processed_reviews_path == settings.reviews_clean_balanced_subset_path
     include_user_llm_artifacts = bool(manifest.get("llm_requested", False))
@@ -2656,7 +2603,6 @@ def build_experiment_manifest(
     mock_llm_ran: bool = False,
     llm_mode: str = "real",
 ) -> dict[str, object]:
-    """Build the machine-readable manifest for a controlled experiment run."""
 
     preprocessing_summary = load_json_if_exists(get_active_preprocessing_summary_path(settings))
     game_card_summary = load_json_if_exists(settings.game_card_summary_path)
@@ -2793,7 +2739,6 @@ def build_experiment_manifest(
 
 
 def map_manifest_scenario_mode(raw_mode: str) -> str:
-    """Map internal scenario mode labels to a compact manifest value."""
 
     if raw_mode == "manual_or_predefined":
         return "manual"
@@ -2810,7 +2755,6 @@ def build_experiment_readme(
     manifest: dict[str, object],
     experiment_dir: Path,
 ) -> str:
-    """Create a brief experiment README for the copied output folder."""
 
     metrics_lines = ["- Metrics summary unavailable."]
     metrics_source_path = settings.metrics_summary_path
@@ -2897,7 +2841,6 @@ def build_experiment_readme(
 
 
 def _relative_project_path(project_root: Path, path: Path) -> str:
-    """Return a project-relative string when possible."""
 
     try:
         return str(path.relative_to(project_root))
@@ -2906,7 +2849,6 @@ def _relative_project_path(project_root: Path, path: Path) -> str:
 
 
 def _safe_int(value: object, default: int = 0) -> int:
-    """Best-effort integer conversion."""
 
     try:
         if value is None:
@@ -2919,7 +2861,6 @@ def _safe_int(value: object, default: int = 0) -> int:
 
 
 def _metrics_frame_to_dict(metrics_df: pd.DataFrame, method_name: str) -> dict[str, object]:
-    """Extract the first metrics row for a given method name."""
 
     if metrics_df.empty or "method" not in metrics_df.columns:
         return {}
@@ -2933,7 +2874,6 @@ def _metrics_frame_to_dict(metrics_df: pd.DataFrame, method_name: str) -> dict[s
 
 
 def _load_experiment_candidate(settings: Settings, experiment_dir: Path) -> dict[str, object]:
-    """Load an archived experiment folder and score whether it is a valid final result."""
 
     manifest_path = experiment_dir / "experiment_manifest.json"
     reranking_summary_path = experiment_dir / "user_llm_reranking_summary.json"
@@ -3060,7 +3000,6 @@ def _load_experiment_candidate(settings: Settings, experiment_dir: Path) -> dict
 
 
 def select_final_experiment(settings: Settings) -> dict[str, object]:
-    """Select the best archived experiment run for thesis export."""
 
     experiments_dir = settings.project_root / "experiments"
     selection_path = settings.results_dir / "final_experiment_selection.json"
@@ -3296,7 +3235,6 @@ def select_final_experiment(settings: Settings) -> dict[str, object]:
 
 
 def _load_final_experiment_selection(settings: Settings) -> dict[str, object]:
-    """Load the selected archived experiment metadata."""
 
     selection_path = settings.results_dir / "final_experiment_selection.json"
     if not selection_path.exists():
@@ -3307,7 +3245,6 @@ def _load_final_experiment_selection(settings: Settings) -> dict[str, object]:
 
 
 def export_thesis_results(settings: Settings) -> dict[str, object]:
-    """Copy stable thesis artifacts from the selected archived experiment."""
 
     selection = _load_final_experiment_selection(settings)
     selected_dir_value = str(selection.get("selected_experiment_dir", "") or "").strip()
@@ -3423,7 +3360,6 @@ def export_thesis_results(settings: Settings) -> dict[str, object]:
 
 
 def load_analysis_artifacts(settings: Settings) -> dict[str, object]:
-    """Load the recommendation and evaluation artifacts needed for report analysis."""
 
     scenario_records = load_required_jsonl(
         settings.scenarios_output_path,
@@ -3467,7 +3403,6 @@ def load_analysis_artifacts(settings: Settings) -> dict[str, object]:
 
 
 def load_required_jsonl(path: Path, help_text: str) -> list[dict[str, object]]:
-    """Load a required JSONL artifact or raise a clear error."""
 
     if not path.exists():
         raise FileNotFoundError(f"Required artifact '{path}' not found. {help_text}")
@@ -3475,7 +3410,6 @@ def load_required_jsonl(path: Path, help_text: str) -> list[dict[str, object]]:
 
 
 def load_required_csv(path: Path, help_text: str) -> pd.DataFrame:
-    """Load a required CSV artifact or raise a clear error."""
 
     if not path.exists():
         raise FileNotFoundError(f"Required artifact '{path}' not found. {help_text}")
@@ -3483,7 +3417,6 @@ def load_required_csv(path: Path, help_text: str) -> pd.DataFrame:
 
 
 def group_rows_by_scenario(rows: list[dict[str, object]]) -> dict[str, list[dict[str, object]]]:
-    """Group recommendation rows by scenario id."""
 
     grouped: dict[str, list[dict[str, object]]] = {}
     for row in rows:
@@ -3493,7 +3426,6 @@ def group_rows_by_scenario(rows: list[dict[str, object]]) -> dict[str, list[dict
 
 
 def build_rank_comparison_frame(artifacts: dict[str, object]) -> pd.DataFrame:
-    """Build one row per scenario comparing baseline and LLM target ranks."""
 
     rows: list[dict[str, object]] = []
     for scenario in artifacts["scenario_records"]:
@@ -3537,7 +3469,6 @@ def save_rank_comparison_outputs(
     rank_frame: pd.DataFrame,
     artifacts: dict[str, object],
 ) -> None:
-    """Save rank-comparison CSV and markdown outputs."""
 
     rank_frame.to_csv(settings.rank_comparison_csv_path, index=False)
     lines = [
@@ -3557,7 +3488,6 @@ def save_rank_comparison_outputs(
 def build_llm_explanation_checks_frame(
     artifacts: dict[str, object],
 ) -> tuple[pd.DataFrame, str]:
-    """Build heuristic explanation-check rows for LLM recommendations."""
 
     rows: list[dict[str, object]] = []
     if not artifacts["llm_has_ranked_rows"]:
@@ -3625,7 +3555,6 @@ def save_llm_explanation_outputs(
     frame: pd.DataFrame,
     note: str,
 ) -> None:
-    """Save LLM explanation-check CSV and markdown outputs."""
 
     frame.to_csv(settings.llm_explanation_checks_csv_path, index=False)
     lines = [
@@ -3642,7 +3571,6 @@ def select_case_study_records(
     artifacts: dict[str, object],
     rank_frame: pd.DataFrame,
 ) -> list[dict[str, object]]:
-    """Select representative case studies across baseline and LLM categories."""
 
     category_rules = {
         "baseline_success": lambda row: row["baseline_hit_at_5"] == 1,
@@ -3679,7 +3607,6 @@ def build_case_study_record(
     scenario: dict[str, object],
     artifacts: dict[str, object],
 ) -> dict[str, object]:
-    """Build one case-study record with compact interpretation."""
 
     scenario_id = str(scenario["scenario_id"])
     ground_truth_games = [
@@ -3717,7 +3644,6 @@ def build_case_study_record(
 
 
 def build_case_studies_markdown(payload: dict[str, object]) -> str:
-    """Render case studies as a markdown report."""
 
     lines = ["# Case Studies", ""]
     note = str(payload.get("note", "")).strip()
@@ -3759,7 +3685,6 @@ def build_recommendation_example_section(
     scenario: dict[str, object],
     artifacts: dict[str, object],
 ) -> list[str]:
-    """Render one recommendation example section."""
 
     scenario_id = str(scenario["scenario_id"])
     baseline_rows = sorted_ranked_rows(artifacts["baseline_by_scenario"].get(scenario_id, []))[:5]
@@ -3802,7 +3727,6 @@ def build_recommendation_example_section(
 
 
 def build_thesis_metrics_table(settings: Settings) -> str:
-    """Build a markdown table for method-level metrics."""
 
     lines = ["# Thesis Metrics Table", ""]
     active_mode = get_active_dataset_mode(settings)
@@ -3862,7 +3786,6 @@ def build_thesis_metrics_table(settings: Settings) -> str:
 
 
 def build_user_thesis_metrics_table(settings: Settings) -> str:
-    """Build a markdown table for the user-based balanced-subset baseline."""
 
     lines = ["# User Thesis Metrics Table", ""]
     if not settings.user_metrics_summary_path.exists():
@@ -3891,7 +3814,6 @@ def build_user_thesis_metrics_table(settings: Settings) -> str:
 
 
 def build_thesis_dataset_table(settings: Settings) -> str:
-    """Build a markdown table summarizing the dataset and preprocessing outputs."""
 
     preprocessing = load_json_if_exists(get_active_preprocessing_summary_path(settings))
     game_card_summary = load_json_if_exists(settings.game_card_summary_path)
@@ -3917,7 +3839,6 @@ def build_thesis_dataset_table(settings: Settings) -> str:
 
 
 def build_thesis_balanced_subset_dataset_table(settings: Settings) -> str:
-    """Build a markdown table summarizing the balanced-subset workflow."""
 
     preprocessing = load_json_if_exists(settings.preprocessing_balanced_subset_summary_path)
     profile_summary = load_json_if_exists(settings.user_profile_summary_path)
@@ -3946,7 +3867,6 @@ def build_thesis_balanced_subset_dataset_table(settings: Settings) -> str:
 
 
 def build_balanced_subset_methodology_note(settings: Settings) -> str:
-    """Explain the balanced-subset methodology in a thesis-friendly note."""
 
     preprocessing = load_json_if_exists(settings.preprocessing_balanced_subset_summary_path)
     if not preprocessing:
@@ -3976,7 +3896,6 @@ def build_balanced_subset_methodology_note(settings: Settings) -> str:
 
 
 def build_thesis_scenario_table(settings: Settings) -> str:
-    """Build a markdown table summarizing scenario coverage and validation status."""
 
     scenario_records = load_required_jsonl(
         settings.scenarios_output_path,
@@ -4033,7 +3952,6 @@ def build_preflight_next_steps(
     active_dataset_mode: str,
     balanced_subset_recommended: bool = False,
 ) -> list[str]:
-    """Generate concise preflight recommendations."""
 
     steps: list[str] = []
     if dataset_too_small:
@@ -4065,7 +3983,6 @@ def build_preflight_next_steps(
 
 
 def build_preflight_commands(status: str, scenario_validation_exists: bool) -> list[str]:
-    """Suggest the most useful next commands from the current state."""
 
     commands = [
         "./.venv/bin/python main.py --step check_env",
@@ -4087,7 +4004,6 @@ def build_preflight_commands(status: str, scenario_validation_exists: bool) -> l
 
 
 def build_preflight_markdown(report: dict[str, object]) -> str:
-    """Render the preflight report as thesis-friendly markdown."""
 
     lines = [
         "# Preflight Report",
@@ -4177,7 +4093,6 @@ def build_case_study_note(
     llm_available: bool,
     case_count: int,
 ) -> str:
-    """Build a short note shown at the top of the case-study report."""
 
     notes: list[str] = []
     if artifacts["scenario_mode"] == "synthetic_demo_only":
@@ -4192,7 +4107,6 @@ def build_case_study_note(
 
 
 def build_analysis_warning_lines(artifacts: dict[str, object]) -> list[str]:
-    """Build prominent warning lines for analysis reports."""
 
     lines: list[str] = []
     if artifacts["scenario_mode"] == "synthetic_demo_only":
@@ -4207,7 +4121,6 @@ def build_analysis_warning_lines(artifacts: dict[str, object]) -> list[str]:
 
 
 def build_game_reference(game_id: str, game_cards: dict[str, dict[str, object]]) -> dict[str, str]:
-    """Convert a game id to a compact reference object."""
 
     card = game_cards.get(str(game_id), {})
     return {
@@ -4220,7 +4133,6 @@ def build_baseline_case_recommendations(
     rows: list[dict[str, object]],
     ground_truth_ids: list[str],
 ) -> list[dict[str, object]]:
-    """Build baseline recommendation rows for reports."""
 
     truth_set = {str(game_id) for game_id in ground_truth_ids}
     return [
@@ -4239,7 +4151,6 @@ def build_llm_case_recommendations(
     rows: list[dict[str, object]],
     ground_truth_ids: list[str],
 ) -> list[dict[str, object]]:
-    """Build LLM recommendation rows for reports."""
 
     truth_set = {str(game_id) for game_id in ground_truth_ids}
     return [
@@ -4256,14 +4167,12 @@ def build_llm_case_recommendations(
 
 
 def sorted_ranked_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
-    """Sort recommendation rows that contain actual ranked items."""
 
     ranked_rows = [row for row in rows if row.get("rank") is not None and row.get("game_id")]
     return sorted(ranked_rows, key=lambda row: int(row.get("rank", 0)))
 
 
 def best_ground_truth_rank(rows: list[dict[str, object]], ground_truth_ids: list[str]) -> int | None:
-    """Return the best observed rank of any ground-truth item."""
 
     truth_set = {str(game_id) for game_id in ground_truth_ids}
     ranks = [
@@ -4275,7 +4184,6 @@ def best_ground_truth_rank(rows: list[dict[str, object]], ground_truth_ids: list
 
 
 def extract_scenario_status(rows: list[dict[str, object]]) -> str:
-    """Extract the status string for one scenario's recommendation rows."""
 
     if not rows:
         return "unavailable"
@@ -4283,7 +4191,6 @@ def extract_scenario_status(rows: list[dict[str, object]]) -> str:
 
 
 def format_rank_value(rank: int | None, unavailable: bool = False) -> object:
-    """Format a rank value for CSV export."""
 
     if unavailable:
         return "unavailable"
@@ -4293,7 +4200,6 @@ def format_rank_value(rank: int | None, unavailable: bool = False) -> object:
 
 
 def format_hit_value(rank: int | None, k: int, unavailable: bool = False) -> object:
-    """Format hit@k for CSV export."""
 
     if unavailable:
         return "unavailable"
@@ -4301,7 +4207,6 @@ def format_hit_value(rank: int | None, k: int, unavailable: bool = False) -> obj
 
 
 def compute_rank_delta(baseline_rank: int | None, llm_rank: int | None) -> object:
-    """Compute baseline_rank - llm_rank when both are available."""
 
     if baseline_rank is None or llm_rank is None:
         return ""
@@ -4309,7 +4214,6 @@ def compute_rank_delta(baseline_rank: int | None, llm_rank: int | None) -> objec
 
 
 def is_hit_at_k(rank: int | None, k: int) -> bool:
-    """Return whether a rank falls within the top-k window."""
 
     return rank is not None and rank <= k
 
@@ -4320,7 +4224,6 @@ def build_rank_interpretation(
     llm_status: str,
     llm_available: bool,
 ) -> str:
-    """Generate a one-line interpretation of rank comparison results."""
 
     if not llm_available:
         return "LLM reranking was unavailable for this run."
@@ -4340,7 +4243,6 @@ def build_rank_interpretation(
 
 
 def is_llm_improved_row(row: dict[str, object]) -> bool:
-    """Return True when LLM rank improved relative to the baseline."""
 
     baseline_rank = parse_rank_placeholder(row.get("baseline_best_ground_truth_rank"))
     llm_rank = parse_rank_placeholder(row.get("llm_best_ground_truth_rank"))
@@ -4350,7 +4252,6 @@ def is_llm_improved_row(row: dict[str, object]) -> bool:
 
 
 def is_llm_worsened_row(row: dict[str, object]) -> bool:
-    """Return True when LLM rank worsened relative to the baseline."""
 
     baseline_rank = parse_rank_placeholder(row.get("baseline_best_ground_truth_rank"))
     llm_rank = parse_rank_placeholder(row.get("llm_best_ground_truth_rank"))
@@ -4360,7 +4261,6 @@ def is_llm_worsened_row(row: dict[str, object]) -> bool:
 
 
 def parse_rank_placeholder(value: object) -> int | None:
-    """Convert a stored rank placeholder back into an integer rank or None."""
 
     if value in {"", None, "not_found", "unavailable"}:
         return None
@@ -4373,7 +4273,6 @@ def build_case_interpretation(
     llm_rank: int | None,
     llm_status: str,
 ) -> str:
-    """Generate a short human-readable case interpretation."""
 
     if category == "baseline_success":
         return f"Baseline retrieved a ground-truth game at rank {baseline_rank}."
@@ -4391,7 +4290,6 @@ def build_case_interpretation(
 
 
 def format_ground_truth_games(games: list[dict[str, str]]) -> str:
-    """Format ground-truth game references for markdown."""
 
     if not games:
         return "none"
@@ -4399,7 +4297,6 @@ def format_ground_truth_games(games: list[dict[str, str]]) -> str:
 
 
 def extract_content_tokens(text: str) -> set[str]:
-    """Extract simple content tokens for heuristic overlap checks."""
 
     return {
         token
@@ -4409,7 +4306,6 @@ def extract_content_tokens(text: str) -> set[str]:
 
 
 def format_metric(value: object) -> object:
-    """Format numeric metrics to three decimals when possible."""
 
     if value == "" or value is None:
         return ""
@@ -4420,7 +4316,6 @@ def format_metric(value: object) -> object:
 
 
 def load_json_if_exists(path: Path) -> dict[str, object]:
-    """Load a JSON file if present, otherwise return an empty dictionary."""
 
     if not path.exists():
         return {}
@@ -4428,7 +4323,6 @@ def load_json_if_exists(path: Path) -> dict[str, object]:
 
 
 def load_csv_summary_if_exists(path: Path) -> dict[str, object]:
-    """Load the first row of a CSV summary file if present."""
 
     if not path.exists():
         return {}

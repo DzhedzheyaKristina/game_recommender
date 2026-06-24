@@ -1,4 +1,3 @@
-"""Controlled LLM reranking for user-based balanced-subset experiments."""
 
 from __future__ import annotations
 
@@ -31,7 +30,6 @@ PROMPT_TOO_LONG_THRESHOLD = 12_000
 
 
 class UserLLMRecommendationItem(BaseModel):
-    """One ranked game returned by the LLM."""
 
     rank: int
     game_id: str
@@ -43,13 +41,11 @@ class UserLLMRecommendationItem(BaseModel):
 
 
 class UserLLMResponse(BaseModel):
-    """Expected JSON response from the user-based reranker."""
 
     recommendations: list[UserLLMRecommendationItem] = Field(default_factory=list)
 
 
 def normalize_llm_mode(value: object) -> str:
-    """Normalize the configured LLM mode."""
 
     normalized = str(value or "real").strip().lower() or "real"
     if normalized not in {"real", "mock"}:
@@ -64,7 +60,6 @@ def infer_token_obtained_from_error(
     response_received: bool,
     http_status: int | None = None,
 ) -> bool:
-    """Best-effort inference for whether a provider token was obtained."""
 
     message = str(error_message or "").lower()
     token_error_markers = {
@@ -87,19 +82,16 @@ def infer_token_obtained_from_error(
 
 
 def get_llm_response_language(settings: Settings) -> str:
-    """Return the normalized response language for the LLM output."""
 
     return normalize_llm_response_language(getattr(settings, "llm_response_language", "ru"))
 
 
 def get_llm_provider_name(settings: Settings) -> str:
-    """Return the normalized provider name."""
 
     return get_effective_llm_provider(settings)
 
 
 def deduplicate_preserve_order(values: list[str]) -> list[str]:
-    """Return a list with duplicates removed while preserving order."""
 
     seen: set[str] = set()
     result: list[str] = []
@@ -112,7 +104,6 @@ def deduplicate_preserve_order(values: list[str]) -> list[str]:
 
 
 def run_user_llm_pilot(settings: Settings) -> list[dict[str, object]]:
-    """Run a controlled LLM reranking pilot on a small user subset."""
 
     llm_mode = normalize_llm_mode(getattr(settings, "llm_mode", "real"))
     llm_provider = get_llm_provider_name(settings)
@@ -418,7 +409,6 @@ def run_user_llm_pilot(settings: Settings) -> list[dict[str, object]]:
 
 
 def run_user_llm_mock_pilot(settings: Settings) -> list[dict[str, object]]:
-    """Run a deterministic mock reranking pass for pipeline validation only."""
 
     logger = get_logger()
     context = load_user_llm_context(settings)
@@ -524,7 +514,6 @@ def run_user_llm_mock_pilot(settings: Settings) -> list[dict[str, object]]:
 
 
 def run_user_llm_dry_run(settings: Settings) -> dict[str, object]:
-    """Create prompt previews for the first few pilot users without API calls."""
 
     context = load_user_llm_context(settings)
     selected_users = select_pilot_users(settings, context["splits"])
@@ -583,7 +572,6 @@ def run_user_llm_dry_run(settings: Settings) -> dict[str, object]:
 
 
 def run_llm_check(settings: Settings) -> dict[str, object]:
-    """Check whether LLM credentials and client initialization are available."""
 
     logger = get_logger()
     provider_report = check_provider_readiness(settings)
@@ -666,7 +654,6 @@ def run_llm_check(settings: Settings) -> dict[str, object]:
 
 
 def evaluate_user_llm(settings: Settings) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Compare the user TF-IDF baseline with the controlled user LLM pilot."""
 
     logger = get_logger()
     if not settings.user_llm_results_path.exists():
@@ -739,7 +726,6 @@ def evaluate_user_llm(settings: Settings) -> tuple[pd.DataFrame, pd.DataFrame, p
 
 
 def load_user_llm_context(settings: Settings) -> dict[str, object]:
-    """Load user profiles, splits, baseline rows, and game cards for the pilot."""
 
     profiles = read_jsonl(settings.user_profiles_path)
     split_path = get_active_user_splits_path(settings)
@@ -767,7 +753,6 @@ def build_llm_pilot_candidate_user_report_frame(
     splits: list[dict[str, object]],
     baseline_rows: list[dict[str, object]],
 ) -> pd.DataFrame:
-    """Build a diagnostic report for selecting meaningful pilot users."""
 
     baseline_by_user = group_rows_by_user(baseline_rows)
     rows: list[dict[str, object]] = []
@@ -812,7 +797,6 @@ def build_llm_pilot_candidate_user_report_frame(
 
 
 def save_llm_pilot_candidate_user_report(settings: Settings, frame: pd.DataFrame) -> None:
-    """Save the candidate-user diagnostics used for pilot selection."""
 
     frame.to_csv(settings.llm_pilot_candidate_user_report_csv_path, index=False)
     lines = [
@@ -841,7 +825,6 @@ def save_llm_pilot_candidate_user_report(settings: Settings, frame: pd.DataFrame
 
 
 def select_pilot_users(settings: Settings, splits: list[dict[str, object]]) -> list[dict[str, object]]:
-    """Select a small, deterministic set of users for the pilot."""
 
     baseline_rows = read_jsonl(settings.user_baseline_results_path)
     baseline_by_user = group_rows_by_user(baseline_rows)
@@ -905,7 +888,6 @@ def select_pilot_users(settings: Settings, splits: list[dict[str, object]]) -> l
 
 
 def build_user_llm_system_prompt(settings: Settings) -> str:
-    """Return a compact system prompt for controlled user-based reranking."""
 
     response_language = get_llm_response_language(settings)
     if response_language == "ru":
@@ -939,7 +921,6 @@ def build_user_llm_prompt(
     game_cards_by_id: dict[str, GameCard],
     settings: Settings,
 ) -> str:
-    """Build a compact prompt from one user profile and candidate list."""
 
     profile = user_bundle.get("profile", {}) or {}
     masked_user_id = str(user_bundle.get("masked_user_id", ""))
@@ -1010,7 +991,6 @@ def build_user_llm_prompt(
 
 
 def build_profile_text(profile: dict[str, object], game_cards_by_id: dict[str, GameCard]) -> str:
-    """Render a compact text block for the user profile."""
 
     positive_game_ids = [str(game_id) for game_id in profile.get("positive_game_ids", [])]
     negative_game_ids = [str(game_id) for game_id in profile.get("negative_game_ids", [])]
@@ -1032,7 +1012,6 @@ def build_profile_text(profile: dict[str, object], game_cards_by_id: dict[str, G
 
 
 def build_candidate_line(row: dict[str, object], game_cards_by_id: dict[str, GameCard]) -> str:
-    """Render one candidate game compactly for the prompt."""
 
     game_id = str(row.get("game_id", ""))
     card = game_cards_by_id[game_id]
@@ -1054,7 +1033,6 @@ def rerank_single_user(
     system_prompt: str,
     settings: Settings,
 ) -> tuple[list[dict[str, object]], dict[str, object], dict[str, object] | None]:
-    """Call the LLM and validate that it only reorders known candidates."""
 
     baseline_ids = [str(row.get("game_id", "")) for row in candidate_rows if row.get("game_id")]
     baseline_ids = [game_id for game_id in baseline_ids if game_id in id_to_card]
@@ -1463,7 +1441,6 @@ def build_user_llm_records(
     notes: str,
     llm_mode: str = "real",
 ) -> list[dict[str, object]]:
-    """Convert ranked candidate items into row-wise recommendation records."""
 
     rows: list[dict[str, object]] = []
     for index, item in enumerate(items, start=1):
@@ -1497,7 +1474,6 @@ def build_mock_user_llm_records(
     id_to_card: dict[str, GameCard],
     settings: Settings,
 ) -> list[dict[str, object]]:
-    """Create deterministic mock reranking rows without calling an API."""
 
     baseline_ids = [str(row.get("game_id", "")) for row in candidate_rows if row.get("game_id")]
     baseline_ids = [game_id for game_id in baseline_ids if game_id in id_to_card]
@@ -1564,7 +1540,6 @@ def build_skipped_user_llm_rows(
     reason: str,
     llm_mode: str = "real",
 ) -> list[dict[str, object]]:
-    """Build status rows when LLM reranking is skipped."""
 
     rows: list[dict[str, object]] = []
     for user_bundle in selected_users:
@@ -1594,7 +1569,6 @@ def build_user_llm_per_profile_frame(
     baseline_rows: list[dict[str, object]],
     llm_rows: list[dict[str, object]],
 ) -> pd.DataFrame:
-    """Build per-profile comparison rows for the pilot users."""
 
     baseline_by_user = group_rows_by_user(baseline_rows)
     llm_by_user = group_rows_by_user(llm_rows)
@@ -1660,7 +1634,6 @@ def build_user_llm_per_profile_frame(
 
 
 def build_user_llm_metrics_summary(per_profile_df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate baseline and LLM metrics for the pilot users."""
 
     if per_profile_df.empty:
         return pd.DataFrame(
@@ -1738,7 +1711,6 @@ def build_user_llm_metrics_summary(per_profile_df: pd.DataFrame) -> pd.DataFrame
 
 
 def build_user_rank_comparison_frame(per_profile_df: pd.DataFrame) -> pd.DataFrame:
-    """Build a rank comparison table between the baseline and LLM rankings."""
 
     if per_profile_df.empty:
         return pd.DataFrame(
@@ -1806,7 +1778,6 @@ def build_user_llm_explanation_checks_frame(
     game_cards_by_id: dict[str, GameCard],
     top_k: int,
 ) -> pd.DataFrame:
-    """Build heuristic checks for LLM explanations."""
 
     profile_by_user = {str(user_bundle["user_id"]): user_bundle for user_bundle in selected_users}
     rows: list[dict[str, object]] = []
@@ -1851,7 +1822,6 @@ def build_user_llm_explanation_checks_frame(
 
 
 def save_user_llm_explanation_outputs(settings: Settings, frame: pd.DataFrame) -> None:
-    """Save explanation-check markdown output."""
 
     mock_mode = bool(not frame.empty and "llm_mode" in frame.columns and (frame["llm_mode"].astype(str) == "mock").any())
     lines = [
@@ -1878,7 +1848,6 @@ def save_user_llm_examples_markdown(
     selected_users: list[dict[str, object]],
     game_cards_by_id: dict[str, GameCard],
 ) -> None:
-    """Save a small set of user-LMM explanation examples."""
 
     profile_by_user = {str(user_bundle["user_id"]): user_bundle for user_bundle in selected_users}
     mock_mode = any(str(row.get("llm_mode", "")).strip() == "mock" for row in llm_rows)
@@ -1921,7 +1890,6 @@ def save_user_llm_examples_markdown(
 
 
 def save_user_llm_metrics_table(settings: Settings, metrics_df: pd.DataFrame) -> None:
-    """Write a compact markdown metrics table for the pilot."""
 
     mock_mode = bool(
         not metrics_df.empty
@@ -1955,7 +1923,6 @@ def save_user_llm_metrics_table(settings: Settings, metrics_df: pd.DataFrame) ->
 
 
 def save_user_llm_pilot_summary_markdown(settings: Settings, summary: dict[str, object]) -> None:
-    """Write a pilot summary markdown report."""
 
     mock_mode = bool(summary.get("mock_mode", False))
     lines = [
@@ -2056,7 +2023,6 @@ def save_user_llm_mock_validation_report(
     validation_summary: dict[str, object],
     llm_rows: list[dict[str, object]],
 ) -> None:
-    """Write a clearly labeled mock-validation report."""
 
     mock_mode = True
     generated_files = [
@@ -2111,7 +2077,6 @@ def write_user_llm_failure_report(
     validation_summary: dict[str, object],
     provider_preflight_report: dict[str, object] | None = None,
 ) -> None:
-    """Write a safe failure report for the user-LLM pilot."""
 
     provider_preflight_report = provider_preflight_report or {}
     payload = {
@@ -2239,7 +2204,6 @@ def write_user_llm_schema_error_report(
     failure_details: list[dict[str, object]],
     validation_summary: dict[str, object],
 ) -> None:
-    """Write a safe schema-error report for debugging malformed LLM output."""
 
     schema_rows = [
         detail
@@ -2318,7 +2282,6 @@ def write_user_llm_schema_error_report(
 
 
 def write_user_llm_prompt_preview(settings: Settings, preview_records: list[dict[str, object]]) -> None:
-    """Write prompt previews for manual inspection."""
 
     write_user_llm_prompt_preview_variant(settings, preview_records, variant_suffix="")
 
@@ -2328,7 +2291,6 @@ def write_user_llm_prompt_preview_variant(
     preview_records: list[dict[str, object]],
     variant_suffix: str,
 ) -> None:
-    """Write prompt previews to a named output variant."""
 
     json_path = settings.user_llm_prompt_preview_json_path
     markdown_path = settings.user_llm_prompt_preview_markdown_path
@@ -2388,7 +2350,6 @@ def build_user_llm_summary(
     not_for_scientific_metrics: bool,
     validation_summary: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    """Build a machine-readable summary of the user LLM pilot."""
 
     validation_summary = validation_summary or {}
     status_counts = Counter(str(row.get("status", "")) for row in llm_rows)
@@ -2528,7 +2489,6 @@ def build_mock_validation_summary(
     fallback_count: int,
     all_game_ids_inside_candidate_pool: bool,
 ) -> dict[str, object]:
-    """Build a machine-readable summary for mock validation runs."""
 
     return {
         "users_requested": users_requested,
@@ -2545,13 +2505,11 @@ def build_mock_validation_summary(
 
 
 def write_json_report(path: Path, payload: dict[str, object]) -> None:
-    """Write a JSON report."""
 
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def extract_json_fenced_blocks(content: str) -> list[str]:
-    """Extract candidate JSON payloads from fenced markdown blocks."""
 
     blocks: list[str] = []
     for match in re.finditer(r"```(?:json)?\s*(.*?)\s*```", content, flags=re.DOTALL | re.IGNORECASE):
@@ -2562,7 +2520,6 @@ def extract_json_fenced_blocks(content: str) -> list[str]:
 
 
 def extract_balanced_json_object(content: str) -> str | None:
-    """Return the first balanced JSON object that contains the recommendations key."""
 
     text = content or ""
     start = text.find("{")
@@ -2600,7 +2557,6 @@ def parse_llm_response_with_diagnostics(
     *,
     save_preview: bool = True,
 ) -> tuple[UserLLMResponse | None, dict[str, object]]:
-    """Parse an LLM response and capture safe diagnostics."""
 
     text = str(content or "")
     stripped = text.strip()
@@ -2658,7 +2614,6 @@ def parse_llm_response_with_diagnostics(
 
 
 def parse_llm_response(content: str) -> UserLLMResponse:
-    """Parse the LLM JSON response."""
 
     parsed, diagnostics = parse_llm_response_with_diagnostics(content, save_preview=False)
     if parsed is not None:
@@ -2674,7 +2629,6 @@ def keep_valid_reranked_items(
     items: list[UserLLMRecommendationItem],
     baseline_ids: list[str],
 ) -> list[dict[str, object]]:
-    """Keep unique LLM ids that are present in the baseline candidate list."""
 
     allowed = set(baseline_ids)
     seen: set[str] = set()
@@ -2698,7 +2652,6 @@ def keep_valid_reranked_items(
 
 
 def group_rows_by_user(rows: list[dict[str, object]]) -> dict[str, list[dict[str, object]]]:
-    """Group row-wise recommendation outputs by user id."""
 
     grouped: dict[str, list[dict[str, object]]] = {}
     for row in rows:
@@ -2711,7 +2664,6 @@ def best_holdout_rank(
     rows: list[dict[str, object]],
     ground_truth_ids: set[str],
 ) -> int | None:
-    """Return the first relevant rank or None."""
 
     ranked_rows = sorted(
         [row for row in rows if row.get("rank") is not None and row.get("game_id")],
@@ -2724,13 +2676,11 @@ def best_holdout_rank(
 
 
 def reciprocal_rank(rank: int | None) -> float:
-    """Return reciprocal rank for a one-based position."""
 
     return 0.0 if rank is None else 1.0 / rank
 
 
 def ndcg_from_rank(rank: int | None, k: int) -> float:
-    """Return binary NDCG from a single relevant hit."""
 
     if rank is None or rank > k:
         return 0.0
@@ -2738,25 +2688,21 @@ def ndcg_from_rank(rank: int | None, k: int) -> float:
 
 
 def is_hit_at_k(rank: int | None, k: int) -> bool:
-    """Return whether a relevant item appeared in the top-k positions."""
 
     return bool(rank is not None and rank <= k)
 
 
 def format_rank_value(rank: int | None) -> int | str:
-    """Format a rank for CSV output."""
 
     return "not_found" if rank is None else int(rank)
 
 
 def format_metric_value(value: float) -> float:
-    """Round a metric for CSV output."""
 
     return round(float(value), 6)
 
 
 def first_status(rows: list[dict[str, object]]) -> str:
-    """Return the first status in a row list."""
 
     if not rows:
         return "missing_results"
@@ -2764,7 +2710,6 @@ def first_status(rows: list[dict[str, object]]) -> str:
 
 
 def first_llm_mode(rows: list[object], default: str = "real") -> str:
-    """Return the first non-empty llm_mode in a row list."""
 
     for row in rows:
         if isinstance(row, dict):
@@ -2777,7 +2722,6 @@ def first_llm_mode(rows: list[object], default: str = "real") -> str:
 
 
 def summarize_user_profile(profile: dict[str, object], game_cards_by_id: dict[str, GameCard]) -> str:
-    """Create a short profile summary for reports."""
 
     if not profile:
         return "No profile available."
@@ -2800,7 +2744,6 @@ def build_rank_interpretation(
     *,
     llm_mode: str = "real",
 ) -> str:
-    """Build a short interpretation for rank comparisons."""
 
     if llm_mode == "mock":
         return "Mock LLM validation mode preserved the controlled ranking for pipeline testing."
@@ -2821,7 +2764,6 @@ def build_rank_interpretation(
 
 
 def format_list(values: list[str] | object) -> str:
-    """Format a list for markdown."""
 
     if not isinstance(values, list) or not values:
         return "none"
@@ -2829,7 +2771,6 @@ def format_list(values: list[str] | object) -> str:
 
 
 def extract_content_tokens(text: str) -> set[str]:
-    """Extract simple lowercase tokens from text."""
 
     return {
         token
@@ -2864,7 +2805,6 @@ def _allow_llm_skip(settings: Settings) -> bool:
 
 
 def load_json_if_exists(path: Path) -> dict[str, object]:
-    """Load JSON content from a file when it exists."""
 
     if not path.exists():
         return {}
@@ -2884,7 +2824,6 @@ def build_user_llm_pilot_summary(
     llm_rows: list[dict[str, object]],
     validation_summary: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    """Build a compact machine-readable summary for the controlled LLM pilot."""
 
     validation_summary = validation_summary or {}
     llm_status_counts = Counter(str(row.get("status", "")) for row in llm_rows)
@@ -3061,7 +3000,6 @@ def build_user_llm_pilot_summary(
 
 
 def save_user_rank_comparison_markdown(settings: Settings, frame: pd.DataFrame) -> None:
-    """Write a compact markdown report for the user rank comparison table."""
 
     mock_mode = bool(
         not frame.empty
@@ -3090,7 +3028,6 @@ def save_user_rank_comparison_markdown(settings: Settings, frame: pd.DataFrame) 
 
 
 def dataframe_to_markdown(frame: pd.DataFrame) -> str:
-    """Render a small markdown table."""
 
     if frame.empty:
         return "_No rows available._"
@@ -3106,7 +3043,6 @@ def dataframe_to_markdown(frame: pd.DataFrame) -> str:
 
 
 def format_metric(value: object) -> str:
-    """Format a numeric metric for markdown tables."""
 
     if value is None or value == "":
         return ""
@@ -3117,7 +3053,6 @@ def format_metric(value: object) -> str:
 
 
 def mask_user_id(user_id: str) -> str:
-    """Mask a Steam user id for human-readable reports."""
 
     cleaned = str(user_id).strip()
     if not cleaned:
@@ -3128,7 +3063,6 @@ def mask_user_id(user_id: str) -> str:
 
 
 def _metrics_frame_to_dict(metrics_df: pd.DataFrame, method_name: str) -> dict[str, object]:
-    """Return one metrics row as a plain dictionary."""
 
     if metrics_df.empty or "method" not in metrics_df.columns:
         return {}

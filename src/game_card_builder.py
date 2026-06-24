@@ -1,4 +1,3 @@
-"""Aggregate cleaned reviews into compact game cards."""
 
 from __future__ import annotations
 
@@ -109,7 +108,6 @@ STOPWORDS = sorted(set(ENGLISH_STOP_WORDS).union(RUSSIAN_STOPWORDS))
 
 
 class GameCard(BaseModel):
-    """Compact representation of a game built from review text only."""
 
     game_id: str
     game_title: str
@@ -131,7 +129,6 @@ class GameCard(BaseModel):
 
 
 def build_game_cards(reviews_df: pd.DataFrame, settings: Settings) -> list[GameCard]:
-    """Create one card per game from cleaned review data."""
 
     logger = get_logger()
     validate_card_settings(settings)
@@ -232,7 +229,6 @@ def build_game_cards(reviews_df: pd.DataFrame, settings: Settings) -> list[GameC
 
 
 def validate_card_settings(settings: Settings) -> None:
-    """Validate configuration values used for game-card generation."""
 
     if settings.min_reviews_per_game <= 0:
         raise ValueError("MIN_REVIEWS_PER_GAME must be positive.")
@@ -245,7 +241,6 @@ def validate_card_settings(settings: Settings) -> None:
 
 
 def select_reviews_for_card(reviews_df: pd.DataFrame, max_reviews: int) -> pd.DataFrame:
-    """Cap large review groups while preserving both sentiment subsets."""
 
     ordered = sort_reviews(reviews_df)
     if len(ordered) <= max_reviews:
@@ -269,7 +264,6 @@ def select_reviews_for_card(reviews_df: pd.DataFrame, max_reviews: int) -> pd.Da
 
 
 def sort_reviews(reviews_df: pd.DataFrame) -> pd.DataFrame:
-    """Order reviews by helpfulness and stable timestamp tiebreakers."""
 
     return reviews_df.sort_values(
         by=["votes_helpful", "timestamp_created", "review_id"],
@@ -282,7 +276,6 @@ def allocate_review_budget(
     negative_count: int,
     max_reviews: int,
 ) -> tuple[int, int]:
-    """Allocate a capped review budget across positive and negative subsets."""
 
     total_count = positive_count + negative_count
     if total_count <= max_reviews:
@@ -320,7 +313,6 @@ def allocate_review_budget(
 
 
 def extract_keywords(reviews: list[str], top_n: int) -> list[str]:
-    """Extract TF-IDF keywords from a subset of reviews."""
 
     usable_reviews = [review for review in reviews if review.strip()]
     if not usable_reviews:
@@ -352,7 +344,6 @@ def select_representative_reviews(
     max_chars: int,
     review_text_column: str = "review",
 ) -> list[str]:
-    """Choose compact representative snippets using helpful-vote sorting."""
 
     if reviews_df.empty:
         return []
@@ -373,7 +364,6 @@ def compose_game_card_text(
     steam_purchase_ratio: float,
     received_for_free_ratio: float,
 ) -> str:
-    """Compose a compact game card text for retrieval and reranking."""
 
     sections = [
         f"Game: {game_title}.",
@@ -393,7 +383,6 @@ def compose_game_card_text(
 
 
 def safe_mean(series: pd.Series | None) -> float:
-    """Return a rounded mean when numeric values are available."""
 
     if series is None:
         return 0.0
@@ -404,7 +393,6 @@ def safe_mean(series: pd.Series | None) -> float:
 
 
 def safe_median(series: pd.Series | None) -> float:
-    """Return a rounded median when numeric values are available."""
 
     if series is None:
         return 0.0
@@ -415,7 +403,6 @@ def safe_median(series: pd.Series | None) -> float:
 
 
 def safe_ratio(series: pd.Series | None) -> float:
-    """Return a ratio over boolean-like values."""
 
     if series is None:
         return 0.0
@@ -431,7 +418,6 @@ def write_game_card_summary(
     game_cards: list[GameCard],
     skipped_games: int,
 ) -> None:
-    """Write a short summary for thesis reporting."""
 
     average_reviews_per_card = 0.0
     if game_cards:

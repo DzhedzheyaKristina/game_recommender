@@ -1,4 +1,3 @@
-"""Evaluate recommendation outputs and write simple report artifacts."""
 
 from __future__ import annotations
 
@@ -29,7 +28,6 @@ def evaluate_recommendations(
     reviews_clean_count: int,
     game_cards: list[GameCard],
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Evaluate baseline and optional LLM outputs against scenario ground truth."""
 
     flattened_records = [
         record
@@ -81,7 +79,6 @@ def evaluate_recommendations(
 def group_records_by_method_and_scenario(
     records: list[RecommendationRecord],
 ) -> dict[tuple[str, str], list[RecommendationRecord]]:
-    """Group recommendation rows by method and scenario id."""
 
     grouped: dict[tuple[str, str], list[RecommendationRecord]] = {}
     for record in records:
@@ -95,7 +92,6 @@ def build_per_scenario_result_row(
     method: str,
     records: list[RecommendationRecord],
 ) -> dict[str, object]:
-    """Build one evaluation row for a method-scenario pair."""
 
     candidate_size = max((record.candidate_size for record in records), default=0)
     ground_truth_count = len(scenario.ground_truth_game_ids)
@@ -138,14 +134,12 @@ def build_per_scenario_result_row(
 
 
 def hit_rate_at_k(ranked_ids: list[str], ground_truth_ids: list[str], k: int) -> float:
-    """Return 1.0 if any relevant game appears in the top-k ranking."""
 
     truth_set = set(ground_truth_ids)
     return float(any(game_id in truth_set for game_id in ranked_ids[:k]))
 
 
 def mean_reciprocal_rank(ranked_ids: list[str], ground_truth_ids: list[str]) -> float:
-    """Compute reciprocal rank for the first relevant hit."""
 
     truth_set = set(ground_truth_ids)
     for index, game_id in enumerate(ranked_ids, start=1):
@@ -155,7 +149,6 @@ def mean_reciprocal_rank(ranked_ids: list[str], ground_truth_ids: list[str]) -> 
 
 
 def ndcg_at_k(ranked_ids: list[str], ground_truth_ids: list[str], k: int) -> float:
-    """Compute a simple binary-relevance NDCG at k."""
 
     truth_set = set(ground_truth_ids)
     dcg = 0.0
@@ -172,7 +165,6 @@ def ndcg_at_k(ranked_ids: list[str], ground_truth_ids: list[str], k: int) -> flo
 
 
 def summarize_metrics(per_scenario_df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate metrics by method using evaluated scenarios only."""
 
     if per_scenario_df.empty:
         return pd.DataFrame(
@@ -208,7 +200,6 @@ def summarize_metrics(per_scenario_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def save_metrics_plot(metrics_summary_df: pd.DataFrame, output_path: Path) -> None:
-    """Save a small comparison figure for aggregate metrics."""
 
     metric_columns = [
         "mean_hit_rate_at_5",
@@ -247,7 +238,6 @@ def write_experiment_summary(
     llm_rows: list[RecommendationRecord],
     llm_has_ranked_rows: bool,
 ) -> None:
-    """Write a compact markdown experiment summary."""
 
     scenario_type_distribution = dict(Counter(scenario.scenario_type for scenario in scenarios))
     scenario_source = determine_scenario_source(scenarios)
@@ -358,7 +348,6 @@ def write_experiment_summary(
 
 
 def determine_scenario_source(scenarios: list[Scenario]) -> str:
-    """Describe whether predefined or synthetic scenarios were used."""
 
     if scenarios and all(scenario.scenario_type == "synthetic_demo" for scenario in scenarios):
         return "synthetic_demo"
@@ -371,7 +360,6 @@ def build_llm_summary_line(
     llm_rows: list[RecommendationRecord],
     llm_has_ranked_rows: bool,
 ) -> str:
-    """Summarize whether the LLM reranker ran or was skipped."""
 
     if not llm_rows:
         return "no llm output"
@@ -392,7 +380,6 @@ def build_llm_summary_line(
 
 
 def format_distribution(distribution: dict[str, int]) -> str:
-    """Format a small scenario-type distribution for markdown output."""
 
     if not distribution:
         return "none"
@@ -403,7 +390,6 @@ def format_distribution(distribution: dict[str, int]) -> str:
 
 
 def load_validation_summary(path: Path) -> dict[str, int]:
-    """Load a tiny summary of the most recent scenario validation report."""
 
     if not path.exists():
         return {"ok_count": 0, "warning_count": 0, "invalid_count": 0}
@@ -424,7 +410,6 @@ def build_recommended_next_steps(
     settings: Settings,
     validation_summary: dict[str, int],
 ) -> list[str]:
-    """Generate a small set of next-step bullets from the current run state."""
 
     steps: list[str] = []
     if dataset_too_small:
@@ -456,7 +441,6 @@ def build_recommended_next_steps(
 
 
 def dataframe_to_markdown(frame: pd.DataFrame) -> str:
-    """Render a small markdown table without optional dependencies."""
 
     if frame.empty:
         return "_No metrics available._"
